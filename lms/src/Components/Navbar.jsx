@@ -5,6 +5,8 @@ import { AuthContext } from "./AuthContext";
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isLoggedIn, logout } = useContext(AuthContext);
+  // const { isLoggedIn, logout } = useState(false);
+
 
   return (
     <nav className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-md">
@@ -26,8 +28,12 @@ const Navbar = () => {
               </Link>
             )}
 
-            <Link to="/editor" className="hover:text-gray-200">Editor</Link>
-
+            <Link to="/editor" className="hover:text-gray-200">Compiler</Link>
+            {isLoggedIn && (
+              <Link to="/student-certificate" className="hover:text-gray-200">
+                Certificate
+              </Link>
+            )}
             {isLoggedIn ? (
               <button onClick={logout} className="hover:text-gray-200">
                 Logout

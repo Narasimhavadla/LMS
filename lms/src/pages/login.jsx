@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../Components/AuthContext";
 
@@ -9,24 +9,29 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.get("http://localhost:3000/login");
-      const user = response.data.find(
-        (u) => u.username === username && u.password === password
-      );
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await axios.get("http://localhost:3000/login");
+    const user = response.data.find(
+      (u) => u.username === username && u.password === password
+    );
 
-      if (user) {
-        login(); // ✅ sets login state and updates Navbar immediately
-        navigate("/mycourses");
+    if (user) {
+      login(user.role); // ✅ pass role to AuthContext
+      if (user.role === "admin") {
+        navigate("/admin-dashboard");
       } else {
-        alert("Invalid credentials");
+        navigate("/mycourses");
       }
-    } catch (error) {
-      console.error("Login failed", error);
+    } else {
+      alert("Invalid credentials");
     }
-  };
+  } catch (error) {
+    console.error("Login failed", error);
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -55,6 +60,10 @@ const Login = () => {
         >
           Login
         </button>
+        <div className="flex">
+          <p>New User ? </p>
+          <Link to={'/signup'} className="text-blue-900"> Signup</Link>
+        </div>
       </form>
     </div>
   );

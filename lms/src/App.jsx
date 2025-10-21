@@ -14,7 +14,12 @@ import Assignment from './pages/Assignment'
 import CodeEditor from './pages/editor'
 import MyCourses from './pages/myCourses'
 // import { AuthContext } from './Components/AuthContext'
-
+import SkillManagement from './Components/skillManagment'
+// import CertificationManagement from './pages/CertificateManagement'
+import StudentCertificates from './pages/CertificateManagement'
+import AdminCertificateManagement from './Admin/AdminCertificate'
+import AdminDashboard from './Admin/AdminDashboard'
+import ProtectedRoute from './Components/ProtectedRoute'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -31,7 +36,21 @@ function App() {
           <Route path='/assignment' element={<Assignment />}></Route>
           <Route path='/editor' element={<CodeEditor />}></Route>
           <Route path='/mycourses' element={<MyCourses />}></Route>
+          <Route path='/skillmanagement' element={<SkillManagement />}></Route>
           {/* <Route path='/authcontext' element={<AuthContext />}></Route> */}
+          {/* <Route path='/certificate-management' element={<CertificationManagement />}></Route> */}
+          <Route path='/student-certificate' element={<StudentCertificates />}></Route>
+          <Route path='/admin-certificate' element={<AdminCertificateManagement />}></Route>
+          <Route 
+          path="/admin-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+          
+
         </Routes>
         <Footer />
     </div>
