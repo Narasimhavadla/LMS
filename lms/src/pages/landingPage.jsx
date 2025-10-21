@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate,Link } from "react-router-dom";
 
 const LandingPage = () => {
   return (
@@ -15,19 +16,19 @@ const LandingPage = () => {
               Empower your learning journey with interactive courses, real-time progress tracking, and expert guidance — all in one place.
             </p>
             <div className="space-x-4">
-              <button className="bg-yellow-400 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
+              <Link to={'/signup'} className="bg-yellow-400 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
                 Get Started
-              </button>
-              <button className="border border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-700 transition">
+              </Link>
+              <Link to={'/course'} className="border border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-700 transition">
                 Explore Courses
-              </button>
+              </Link>
             </div>
           </div>
 
           {/* Hero Image */}
           <div className="md:w-1/2 mt-10 md:mt-0">
             <img
-              src="https://cdn.pixabay.com/photo/2017/01/10/19/05/student-1968078_1280.png"
+              src="/lmsimage.jpeg"
               alt="Learning Illustration"
               className="w-full max-w-md mx-auto"
             />
@@ -69,9 +70,9 @@ const LandingPage = () => {
           <p className="text-blue-100 mb-6">
             Join thousands of learners upgrading their skills with our platform. Flexible, affordable, and effective.
           </p>
-          <button className="bg-yellow-400 text-blue-900 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
+          <Link to={'/signup'} className="bg-yellow-400 text-blue-900 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
             Sign Up for Free
-          </button>
+          </Link>
         </div>
       </section>
 

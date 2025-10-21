@@ -4,9 +4,7 @@ import { AuthContext } from "./AuthContext";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isLoggedIn, logout } = useContext(AuthContext);
-  // const { isLoggedIn, logout } = useState(false);
-
+  const { isLoggedIn, role, logout } = useContext(AuthContext);
 
   return (
     <nav className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-md">
@@ -21,19 +19,22 @@ const Navbar = () => {
             <Link to="/course" className="hover:text-gray-200">Courses</Link>
             <Link to="/service" className="hover:text-gray-200">Services</Link>
 
-            {/* ✅ Show only if logged in */}
-            {isLoggedIn && (
+            {/* Show Assignments only if user is logged in AND not admin */}
+            {isLoggedIn && role !== "admin" && (
               <Link to="/assignment" className="hover:text-gray-200">
                 Assignments
               </Link>
             )}
 
             <Link to="/editor" className="hover:text-gray-200">Compiler</Link>
+
+            {/* Show certificate only if logged in */}
             {isLoggedIn && (
               <Link to="/student-certificate" className="hover:text-gray-200">
                 Certificate
               </Link>
             )}
+
             {isLoggedIn ? (
               <button onClick={logout} className="hover:text-gray-200">
                 Logout
@@ -68,10 +69,10 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-blue-600 px-4 pb-4 space-y-2">
-          <Link to="/" className="block py-2 hover:text-gray-200">Home</Link>
+          <Link to="/" className="block py-2 hovtext-gray-200">Home</Link>
           <Link to="/courses" className="block py-2 hover:text-gray-200">Courses</Link>
 
-          {isLoggedIn && (
+          {isLoggedIn && role !== "admin" && (
             <Link to="/assignments" className="block py-2 hover:text-gray-200">
               Assignments
             </Link>

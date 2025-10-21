@@ -21,7 +21,9 @@ import AdminCertificateManagement from './Admin/AdminCertificate'
 import AdminDashboard from './Admin/AdminDashboard'
 import ProtectedRoute from './Components/ProtectedRoute'
 import AdminAssignments from './Admin/Adminassignment'
-
+import AboutUs from './pages/Aboutus'
+import ContactUs from './pages/Contactus'
+import FAQ from './pages/Faq'
 function App() {
   const [count, setCount] = useState(0)
 
@@ -43,6 +45,9 @@ function App() {
           <Route path='/student-certificate' element={<StudentCertificates />}></Route>
           <Route path='/admin-certificate' element={<AdminCertificateManagement />}></Route>
           <Route path='/admin-assignment' element={<AdminAssignments />}></Route>
+          <Route path='/aboutus' element={<AboutUs />}></Route>
+          <Route path='/contactus' element={<ContactUs />}></Route>
+          <Route path='/faq' element={<FAQ />}></Route>
           <Route 
           path="/admin-dashboard" 
           element={
