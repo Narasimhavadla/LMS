@@ -13,6 +13,7 @@ import {
   LineElement,
   Title
 } from "chart.js";
+import AdminAssignments from "./Adminassignment";
 
 ChartJS.register(
   ArcElement,
@@ -97,12 +98,7 @@ const AdminDashboard = () => {
       case "assignments":
         return (
           <div className="p-4 bg-gray-100 rounded shadow">
-            <h2 className="text-xl font-bold mb-2">Assignments Management</h2>
-            <ul className="mt-4 list-decimal list-inside">
-              <li>React Project 1</li>
-              <li>Python Script Assignment</li>
-              <li>Database Design Exercise</li>
-            </ul>
+            <AdminAssignments />
           </div>
         );
       case "certificates":
