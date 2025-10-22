@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Doughnut, Line } from "react-chartjs-2";
 import AdminCertificateManagement from "./AdminCertificate";
 import SkillManagement from "../Components/skillManagment";
+import AdminEnrollments from "./AdminEnrollPage";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -89,6 +90,15 @@ const AdminDashboard = () => {
             </div>
           </div>
         );
+        case "enrollments":
+        return (
+          <div>
+            {/* <SkillManagement /> */} 
+            {/* here need to add admin enrollment page */}
+            <AdminEnrollments />
+          </div>
+        );
+
       case "skills":
         return (
           <div>
@@ -132,6 +142,14 @@ const AdminDashboard = () => {
           }`}
         >
           Progress
+        </button>
+        <button
+          onClick={() => setActiveTab("enrollments")}
+          className={`py-3 px-4 rounded text-left font-semibold ${
+            activeTab === "enrollments" ? "bg-blue-600" : "hover:bg-gray-700"
+          }`}
+        >
+          Enrollments
         </button>
         <button
           onClick={() => setActiveTab("skills")}

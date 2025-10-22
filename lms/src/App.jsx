@@ -24,6 +24,12 @@ import AdminAssignments from './Admin/Adminassignment'
 import AboutUs from './pages/Aboutus'
 import ContactUs from './pages/Contactus'
 import FAQ from './pages/Faq'
+import EnrollPage from './pages/EnrollPage'
+import AdminEnrollments from './Admin/AdminEnrollPage'
+import ContactAdvisor from './Components/ContactCourseAdvisor'
+
+
+
 function App() {
   const [count, setCount] = useState(0)
 
@@ -48,6 +54,11 @@ function App() {
           <Route path='/aboutus' element={<AboutUs />}></Route>
           <Route path='/contactus' element={<ContactUs />}></Route>
           <Route path='/faq' element={<FAQ />}></Route>
+          <Route path='/enroll/:id' element={<EnrollPage/>}></Route>
+          <Route path='/adminenroll' element={<AdminEnrollments/>}></Route>
+          <Route path='/contactadvisor/:id' element={<ContactAdvisor/>}></Route>
+
+
           <Route 
           path="/admin-dashboard" 
           element={

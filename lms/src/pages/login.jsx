@@ -12,7 +12,7 @@ const Login = () => {
  const handleLogin = async (e) => {
   e.preventDefault();
   try {
-    const response = await axios.get("http://localhost:3000/login");
+    const response = await axios.get("http://localhost:3000/users");
     const user = response.data.find(
       (u) => u.username === username && u.password === password
     );
