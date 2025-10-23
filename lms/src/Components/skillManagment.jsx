@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 export default function SkillManagement() {
-  const API_URL = "http://localhost:3000/courses"; // change to your backend endpoint
+
+
+  const API_URL = import.meta.env.VITE_API_URL; 
 
   const [courses, setCourses] = useState([]);
   const [query, setQuery] = useState("");

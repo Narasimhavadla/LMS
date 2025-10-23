@@ -3,6 +3,7 @@ import { Doughnut, Line } from "react-chartjs-2";
 import AdminCertificateManagement from "./AdminCertificate";
 import SkillManagement from "../Components/skillManagment";
 import AdminEnrollments from "./AdminEnrollPage";
+import AddAdmin from "./AddAdmin";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -125,6 +126,12 @@ const AdminDashboard = () => {
             <AdminCertificateManagement />
         </div>
         );
+        case "addAdmin" :
+          return (
+            <div>
+              <AddAdmin />
+            </div>
+          );
       default:
         return null;
     }
@@ -157,7 +164,7 @@ const AdminDashboard = () => {
             activeTab === "skills" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
-          Technical Skills
+          Course Management
         </button>
         <button
           onClick={() => setActiveTab("assignments")}
@@ -174,6 +181,14 @@ const AdminDashboard = () => {
           }`}
         >
           Certificates
+        </button>
+        <button
+          onClick={() => setActiveTab("addAdmin")}
+          className={`py-3 px-4 rounded text-left font-semibold ${
+            activeTab === "addAdmin" ? "bg-blue-600" : "hover:bg-gray-700"
+          }`}
+        >
+          Add Admin
         </button>
       </div>
 

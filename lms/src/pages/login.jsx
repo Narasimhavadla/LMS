@@ -9,10 +9,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
  const handleLogin = async (e) => {
   e.preventDefault();
   try {
-    const response = await axios.get("http://localhost:3000/users");
+    const response = await axios.get(`${API_URL}/users`);
     const user = response.data.find(
       (u) => u.username === username && u.password === password
     );

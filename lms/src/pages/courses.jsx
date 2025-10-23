@@ -11,11 +11,13 @@ export default function Courses() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const pageSize = 6;
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   // ✅ Fetch data from API
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/courses");
+        const response = await axios.get(`${API_URL}/courses`);
         setCourses(response.data);
       } catch (error) {
         console.error("Error fetching courses:", error);

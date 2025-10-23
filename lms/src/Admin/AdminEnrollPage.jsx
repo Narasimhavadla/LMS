@@ -6,13 +6,20 @@ export default function AdminEnrollments() {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
-  const API_URL = "http://localhost:3000";
 
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  
   useEffect(() => {
     const fetchEnrollments = async () => {
       try {
         const res = await axios.get(`${API_URL}/enrollments`);
-        setEnrollments(res.data);
+        // 🆕 Sort enrollments by date (latest first)
+        const sortedData = [...res.data].sort(
+          (a, b) => new Date(b.filledDate) - new Date(a.filledDate)
+        );
+        setEnrollments(sortedData);
       } catch (err) {
         console.error("Error fetching enrollments:", err);
       } finally {

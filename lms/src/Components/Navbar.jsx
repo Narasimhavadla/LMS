@@ -29,7 +29,7 @@ const Navbar = () => {
             <Link to="/editor" className="hover:text-gray-200">Compiler</Link>
 
             {/* Show certificate only if logged in */}
-            {isLoggedIn && (
+            {isLoggedIn && role !== "admin" && (
               <Link to="/student-certificate" className="hover:text-gray-200">
                 Certificate
               </Link>

@@ -21,6 +21,8 @@ const Signup = () => {
     });
   };
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,7 +36,7 @@ const Signup = () => {
 
     try {
       // Replace with your JSON server endpoint
-      await axios.post("http://localhost:3000/users", formData);
+      await axios.post(`${API_URL}/users`, formData);
 
       toast.success("Signup successful! Redirecting to login...");
       setTimeout(() => navigate("/login"), 2000);
