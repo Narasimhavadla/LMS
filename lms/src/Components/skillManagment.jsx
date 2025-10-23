@@ -35,7 +35,7 @@ export default function SkillManagement() {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get(API_URL);
+      const res = await axios.get(`${API_URL}/courses`);
       setCourses(res.data);
     } catch (err) {
       console.error("Error fetching courses:", err);
@@ -46,7 +46,7 @@ export default function SkillManagement() {
   const handleAddCourse = async () => {
     if (!editCourse.title.trim()) return alert("Course title is required");
     try {
-      const res = await axios.post(API_URL, editCourse);
+      const res = await axios.post(`${API_URL}/courses`, editCourse);
       setCourses([...courses, res.data]);
       resetForm();
     } catch (err) {
@@ -57,7 +57,7 @@ export default function SkillManagement() {
   // ✅ Update existing course (PUT)
   const handleUpdateCourse = async () => {
     try {
-      const res = await axios.put(`${API_URL}/${editCourse.id}`, editCourse);
+      const res = await axios.put(`${API_URL}/courses/${editCourse.id}`, editCourse);
       setCourses(courses.map((c) => (c.id === editCourse.id ? res.data : c)));
       resetForm();
     } catch (err) {
@@ -183,74 +183,116 @@ export default function SkillManagement() {
       </header>
 
       {/* Add/Edit Form */}
-      {isEditing && (
-        <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {editCourse.id ? "Edit Course" : "Add New Course"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Course Title"
-              value={editCourse.title}
-              onChange={(e) => setEditCourse({ ...editCourse, title: e.target.value })}
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Instructor"
-              value={editCourse.instructor}
-              onChange={(e) => setEditCourse({ ...editCourse, instructor: e.target.value })}
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Category"
-              value={editCourse.category}
-              onChange={(e) => setEditCourse({ ...editCourse, category: e.target.value })}
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Duration"
-              value={editCourse.duration}
-              onChange={(e) => setEditCourse({ ...editCourse, duration: e.target.value })}
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Level"
-              value={editCourse.level}
-              onChange={(e) => setEditCourse({ ...editCourse, level: e.target.value })}
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Image URL"
-              value={editCourse.img}
-              onChange={(e) => setEditCourse({ ...editCourse, img: e.target.value })}
-              className="border p-2 rounded"
-            />
-            <textarea
-              placeholder="Description"
-              value={editCourse.description}
-              onChange={(e) => setEditCourse({ ...editCourse, description: e.target.value })}
-              className="border p-2 rounded md:col-span-2"
-            />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={editCourse.id ? handleUpdateCourse : handleAddCourse}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              {editCourse.id ? "Update Course" : "Add Course"}
-            </button>
-            <button onClick={resetForm} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Add/Edit Form */}
+{isEditing && (
+  <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow mb-6">
+    <h2 className="text-xl font-semibold mb-4">
+      {editCourse.id ? "Edit Course" : "Add New Course"}
+    </h2>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Title */}
+      <input
+        type="text"
+        placeholder="Course Title"
+        value={editCourse.title}
+        onChange={(e) => setEditCourse({ ...editCourse, title: e.target.value })}
+        className="border p-2 rounded"
+      />
+
+      {/* Instructor */}
+      <input
+        type="text"
+        placeholder="Instructor"
+        value={editCourse.instructor}
+        onChange={(e) =>
+          setEditCourse({ ...editCourse, instructor: e.target.value })
+        }
+        className="border p-2 rounded"
+      />
+
+      {/* Category - Select Dropdown */}
+      <select
+        value={editCourse.category}
+        onChange={(e) =>
+          setEditCourse({ ...editCourse, category: e.target.value })
+        }
+        className="border p-2 rounded"
+      >
+        <option value="">Select Category</option>
+        <option value="Web Development">Web Development</option>
+        <option value="Programming">Programming</option>
+        <option value="Cloud Computing">Cloud Computing</option>
+        <option value="Databases">Databases</option>
+        <option value="AI & ML">AI & ML</option>
+      </select>
+
+      {/* Duration - Select Dropdown */}
+      <select
+        value={editCourse.duration}
+        onChange={(e) =>
+          setEditCourse({ ...editCourse, duration: e.target.value })
+        }
+        className="border p-2 rounded"
+      >
+        <option value="">Select Duration</option>
+        <option value="1 month">1 month</option>
+        <option value="2 months">2 months</option>
+        <option value="3 months">3 months</option>
+        <option value="6 months">6 months</option>
+      </select>
+
+      {/* Level - Select Dropdown */}
+      <select
+        value={editCourse.level}
+        onChange={(e) =>
+          setEditCourse({ ...editCourse, level: e.target.value })
+        }
+        className="border p-2 rounded"
+      >
+        <option value="">Select Level</option>
+        <option value="Beginner">Beginner</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Advanced">Advanced</option>
+      </select>
+
+      {/* Image URL */}
+      <input
+        type="text"
+        placeholder="Image URL"
+        value={editCourse.img}
+        onChange={(e) => setEditCourse({ ...editCourse, img: e.target.value })}
+        className="border p-2 rounded"
+      />
+
+      {/* Description */}
+      <textarea
+        placeholder="Description"
+        value={editCourse.description}
+        onChange={(e) =>
+          setEditCourse({ ...editCourse, description: e.target.value })
+        }
+        className="border p-2 rounded md:col-span-2"
+      />
+    </div>
+
+    <div className="mt-4 flex gap-2">
+      <button
+        onClick={editCourse.id ? handleUpdateCourse : handleAddCourse}
+        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+      >
+        {editCourse.id ? "Update Course" : "Add Course"}
+      </button>
+      <button
+        onClick={resetForm}
+        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
 
       {/* Course Grid */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

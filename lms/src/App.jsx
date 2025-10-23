@@ -57,6 +57,7 @@ function App() {
           <Route path='/faq' element={<FAQ />}></Route>
           <Route path='/enroll/:id' element={<EnrollPage/>}></Route>
           <Route path='/adminenroll' element={<AdminEnrollments/>}></Route>
+          <Route path='/contactadvisor' element={<ContactAdvisor/>}></Route>
           <Route path='/contactadvisor/:id' element={<ContactAdvisor/>}></Route>
           <Route path='/addadmin' element={<AddAdmin/>}></Route>
 

@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaTrashAlt } from "react-icons/fa";
+import { FaTrashAlt, FaEdit, FaSave, FaTimes } from "react-icons/fa";
 
 export default function AdminEnrollments() {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
-
+  const [editData, setEditData] = useState({});
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  
   useEffect(() => {
     const fetchEnrollments = async () => {
       try {
         const res = await axios.get(`${API_URL}/enrollments`);
-        // 🆕 Sort enrollments by date (latest first)
         const sortedData = [...res.data].sort(
           (a, b) => new Date(b.filledDate) - new Date(a.filledDate)
         );
@@ -29,7 +28,6 @@ export default function AdminEnrollments() {
     fetchEnrollments();
   }, []);
 
-  // 🗑️ Delete Enrollment
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this enrollment?")) return;
 
@@ -42,6 +40,38 @@ export default function AdminEnrollments() {
       alert("Failed to delete enrollment.");
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleEdit = (enroll) => {
+    setEditingId(enroll.id);
+    setEditData({
+      name: enroll.name,
+      email: enroll.email,
+      phone: enroll.phone,
+      courseName: enroll.courseName,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditData({});
+  };
+
+  const handleSave = async (id) => {
+    try {
+      await axios.put(`${API_URL}/enrollments/${id}`, {
+        ...editData,
+        filledDate: enrollments.find((e) => e.id === id).filledDate, // keep original date
+      });
+      setEnrollments((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, ...editData } : e))
+      );
+      setEditingId(null);
+      setEditData({});
+    } catch (error) {
+      console.error("Error updating enrollment:", error);
+      alert("Failed to update enrollment.");
     }
   };
 
@@ -68,7 +98,7 @@ export default function AdminEnrollments() {
               <th className="p-3 border-b">Phone</th>
               <th className="p-3 border-b">Course</th>
               <th className="p-3 border-b">Date</th>
-              <th className="p-3 border-b text-center">Action</th>
+              <th className="p-3 border-b text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -80,29 +110,90 @@ export default function AdminEnrollments() {
               </tr>
             ) : (
               enrollments.map((enroll, index) => (
-                <tr
-                  key={enroll.id}
-                  className="hover:bg-gray-100 transition-all"
-                >
+                <tr key={enroll.id} className="hover:bg-gray-100 transition-all">
                   <td className="p-3 border-b">{index + 1}</td>
-                  <td className="p-3 border-b font-semibold">{enroll.name}</td>
-                  <td className="p-3 border-b">{enroll.email}</td>
-                  <td className="p-3 border-b">{enroll.phone}</td>
-                  <td className="p-3 border-b">{enroll.courseName}</td>
+                  <td className="p-3 border-b">
+                    {editingId === enroll.id ? (
+                      <input
+                        value={editData.name}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        className="border rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      enroll.name
+                    )}
+                  </td>
+                  <td className="p-3 border-b">
+                    {editingId === enroll.id ? (
+                      <input
+                        value={editData.email}
+                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                        className="border rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      enroll.email
+                    )}
+                  </td>
+                  <td className="p-3 border-b">
+                    {editingId === enroll.id ? (
+                      <input
+                        value={editData.phone}
+                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                        className="border rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      enroll.phone
+                    )}
+                  </td>
+                  <td className="p-3 border-b">
+                    {editingId === enroll.id ? (
+                      <input
+                        value={editData.courseName}
+                        onChange={(e) => setEditData({ ...editData, courseName: e.target.value })}
+                        className="border rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      enroll.courseName
+                    )}
+                  </td>
                   <td className="p-3 border-b">{enroll.filledDate}</td>
-                  <td className="p-3 border-b text-center">
-                    <button
-                      onClick={() => handleDelete(enroll.id)}
-                      disabled={deleting === enroll.id}
-                      className={`px-4 py-2 rounded-lg text-white flex items-center justify-center gap-2 mx-auto ${
-                        deleting === enroll.id
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-red-600 hover:bg-red-700 transition-all"
-                      }`}
-                    >
-                      <FaTrashAlt />{" "}
-                      {deleting === enroll.id ? "Deleting..." : "Delete"}
-                    </button>
+                  <td className="p-3 border-b text-center flex justify-center gap-2">
+                    {editingId === enroll.id ? (
+                      <>
+                        <button
+                          onClick={() => handleSave(enroll.id)}
+                          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1"
+                        >
+                          <FaSave /> Save
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500 flex items-center gap-1"
+                        >
+                          <FaTimes /> Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEdit(enroll)}
+                          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 flex items-center gap-1"
+                        >
+                          <FaEdit /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(enroll.id)}
+                          disabled={deleting === enroll.id}
+                          className={`px-3 py-1 rounded text-white flex items-center gap-1 ${
+                            deleting === enroll.id
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-red-600 hover:bg-red-700 transition-all"
+                          }`}
+                        >
+                          <FaTrashAlt /> {deleting === enroll.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))

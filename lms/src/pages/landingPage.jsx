@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate,Link } from "react-router-dom";
+import ContactAdvisor from "../Components/ContactCourseAdvisor";
 
 const LandingPage = () => {
   return (
@@ -16,7 +17,7 @@ const LandingPage = () => {
               Empower your learning journey with interactive courses, real-time progress tracking, and expert guidance — all in one place.
             </p>
             <div className="space-x-4">
-              <Link to={'/signup'} className="bg-yellow-400 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
+              <Link to={'/contactadvisor'} className="bg-yellow-400 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
                 Get Started
               </Link>
               <Link to={'/course'} className="border border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-700 transition">
@@ -70,7 +71,7 @@ const LandingPage = () => {
           <p className="text-blue-100 mb-6">
             Join thousands of learners upgrading their skills with our platform. Flexible, affordable, and effective.
           </p>
-          <Link to={'/signup'} className="bg-yellow-400 text-blue-900 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
+          <Link to={'/contactadvisor'} className="bg-yellow-400 text-blue-900 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
             Sign Up for Free
           </Link>
         </div>

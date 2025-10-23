@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { useParams } from "react-router-dom";
-import { FaUser, FaPhone, FaEnvelope, FaCalendarAlt } from "react-icons/fa";
+import { FaUser, FaPhone, FaEnvelope } from "react-icons/fa";
 
 export default function ContactAdvisor() {
   const { id } = useParams(); // course id from URL
@@ -39,7 +39,7 @@ export default function ContactAdvisor() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const filledDate = new Date().toLocaleDateString("en-GB");
+    const filledDate = new Date().toLocaleDateString("en-GB"); // ✅ still included
     const payload = { ...formData, courseName: course?.title, filledDate };
 
     try {
@@ -120,16 +120,6 @@ export default function ContactAdvisor() {
                 onChange={handleChange}
                 required
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
-              />
-            </div>
-
-            <div className="relative">
-              <FaCalendarAlt className="absolute left-3 top-3 text-blue-500" />
-              <input
-                type="text"
-                value={new Date().toLocaleDateString("en-GB")}
-                readOnly
-                className="w-full pl-10 pr-4 py-2 border rounded-lg bg-gray-100 text-gray-600"
               />
             </div>
 
