@@ -4,6 +4,7 @@ import AdminCertificateManagement from "./AdminCertificate";
 import SkillManagement from "../Components/skillManagment";
 import AdminEnrollments from "./AdminEnrollPage";
 import AddAdmin from "./AddAdmin";
+import AdminUserActivity from "./AdminUserActivity";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -132,6 +133,12 @@ const AdminDashboard = () => {
               <AddAdmin />
             </div>
           );
+          case "adminUserActivity" :
+          return (
+            <div>
+              <AdminUserActivity />
+            </div>
+          );
       default:
         return null;
     }
@@ -189,6 +196,14 @@ const AdminDashboard = () => {
           }`}
         >
           Add Admin
+        </button>
+        <button
+          onClick={() => setActiveTab("adminUserActivity")}
+          className={`py-3 px-4 rounded text-left font-semibold ${
+            activeTab === "adminUserActivity" ? "bg-blue-600" : "hover:bg-gray-700"
+          }`}
+        >
+          Login Report
         </button>
       </div>
 

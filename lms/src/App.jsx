@@ -28,6 +28,7 @@ import EnrollPage from './pages/EnrollPage'
 import AdminEnrollments from './Admin/AdminEnrollPage'
 import ContactAdvisor from './Components/ContactCourseAdvisor'
 import AddAdmin from './Admin/AddAdmin'
+import AdminUserActivity from './Admin/AdminUserActivity'
 
 
 
@@ -60,6 +61,7 @@ function App() {
           <Route path='/contactadvisor' element={<ContactAdvisor/>}></Route>
           <Route path='/contactadvisor/:id' element={<ContactAdvisor/>}></Route>
           <Route path='/addadmin' element={<AddAdmin/>}></Route>
+          <Route path='/admin-user-activity' element={<AdminUserActivity/>}></Route>
 
 
           <Route 

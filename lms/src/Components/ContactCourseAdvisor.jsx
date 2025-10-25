@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { useParams } from "react-router-dom";
 import { FaUser, FaPhone, FaEnvelope } from "react-icons/fa";
+import { AuthContext } from "../Components/AuthContext";
 
 export default function ContactAdvisor() {
   const { id } = useParams(); // course id from URL
+  const { username, email } = useContext(AuthContext); // ✅ get logged-in user info
   const [course, setCourse] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -17,6 +19,7 @@ export default function ContactAdvisor() {
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
+    // 1️⃣ Fetch course info
     const fetchCourse = async () => {
       try {
         const res = await axios.get(`${API_URL}/courses/${id}`);
@@ -27,8 +30,18 @@ export default function ContactAdvisor() {
         setLoading(false);
       }
     };
+
     fetchCourse();
-  }, [id]);
+  }, [id, API_URL]);
+
+  useEffect(() => {
+    // 2️⃣ Pre-fill form with logged-in user's info if available
+    setFormData((prev) => ({
+      ...prev,
+      name: username || "",
+      email: email || "",
+    }));
+  }, [username, email]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -39,13 +52,24 @@ export default function ContactAdvisor() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const filledDate = new Date().toLocaleDateString("en-GB"); // ✅ still included
-    const payload = { ...formData, courseName: course?.title, filledDate };
+    const filledDate = new Date().toLocaleDateString("en-GB");
+
+    const payload = {
+      ...formData,
+      courseName: course?.title,
+      filledDate,
+      isApproved: false, // default for new requests
+      username: "",
+      password: "",
+    };
 
     try {
       await axios.post(`${API_URL}/enrollments`, payload);
       setSubmitted(true);
-      setFormData({ name: "", phone: "", email: "" });
+      setFormData((prev) => ({
+        ...prev,
+        phone: "", // reset phone only
+      }));
     } catch (error) {
       console.error("Error submitting contact form:", error);
     }
@@ -79,10 +103,7 @@ export default function ContactAdvisor() {
             ✅ Thank you! Our advisor will contact you soon.
           </div>
         ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-5 text-gray-700"
-          >
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-gray-700">
             <div className="relative">
               <FaUser className="absolute left-3 top-3 text-blue-500" />
               <input
