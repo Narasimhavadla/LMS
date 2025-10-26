@@ -1,352 +1,162 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../Components/AuthContext";
-import { FaSearch, FaList, FaThLarge, FaVideo, FaBook, FaChalkboardTeacher, FaArrowLeft, FaClock, FaCalendar } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
 import ReactPlayer from "react-player";
-import "react-toastify/dist/ReactToastify.css";
-
-const getPlayableUrl = (url) => {
-  // Convert Wistia project/media pages into actual embed/video URLs
-  if (url && url.includes("wistia.com/medias/")) {
-    const match = url.match(/wistia.com\/medias\/([a-zA-Z0-9]+)/);
-    if (match && match[1]) {
-      return `https://fast.wistia.com/embed/medias/${match[1]}/video`;
-    }
-  }
-  return url;
-};
+import Assignment from "./Assignment";
+import { FaSearch, FaCertificate } from "react-icons/fa";
+import CertificateManagement from "./CertificateManagement";
 
 const MyCourses = () => {
-  const { email } = useContext(AuthContext);
-  const [userCourses, setUserCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [view, setView] = useState("list");
+  // IMPORTANT: use username everywhere you previously used userId
+  const { username, email } = useContext(AuthContext);
+  const userId = username;
+  const userName = username;
   const API_URL = import.meta.env.VITE_API_URL;
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [allocatedBatch, setAllocatedBatch] = useState(null);
-  const [selectedBatch, setSelectedBatch] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("videos");
+  const [loading, setLoading] = useState(true);
+  const [enrollments, setEnrollments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [videos, setVideos] = useState([]);
-  const [loadingVideos, setLoadingVideos] = useState(false);
-  const [playingVideo, setPlayingVideo] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [search, setSearch] = useState("");
+  const [selectedBatchId, setSelectedBatchId] = useState(null);
+  const [selectedVideoId, setSelectedVideoId] = useState(null);
 
   useEffect(() => {
-    const fetchUserCourses = async () => {
+    const fetchAll = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const res = await axios.get(`${API_URL}/enrolledcourses?email=${email}`);
-        setUserCourses(res.data);
+        const [
+          enrollmentsRes, batchesRes, coursesRes,
+          videosRes, assignmentsRes
+        ] = await Promise.all([
+          axios.get(`${API_URL}/enrolledcourses?email=${email}`),
+          axios.get(`${API_URL}/batches`),
+          axios.get(`${API_URL}/courses`),
+          axios.get(`${API_URL}/videos`),
+          axios.get(`${API_URL}/assignments`)
+        ]);
+        setEnrollments(enrollmentsRes.data || []);
+        setBatches(batchesRes.data || []);
+        setCourses(coursesRes.data || []);
+        setVideos(videosRes.data || []);
+        setAssignments(assignmentsRes.data || []);
       } catch {
-        setUserCourses([]);
+        setEnrollments([]); setBatches([]); setCourses([]);
+        setVideos([]); setAssignments([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchUserCourses();
-  }, [email, API_URL]);
+    fetchAll();
+  }, [API_URL, email]);
 
-  const handleCourseClick = async (userCourse) => {
-    try {
-      const coursesResponse = await axios.get(`${API_URL}/courses`);
-      const fullCourse = coursesResponse.data.find(c => c.title === userCourse.courseName);
-      if (!fullCourse) return toast.error("Course not found.");
-      setSelectedCourse(fullCourse);
-      if (userCourse.batchId) {
-        const batchesResponse = await axios.get(`${API_URL}/batches`);
-        const batch = batchesResponse.data.find(b => b.id === userCourse.batchId);
-        if (batch) setAllocatedBatch(batch);
-        else setAllocatedBatch(null);
-      } else {
-        setAllocatedBatch(null);
-      }
-      setSelectedBatch(null);
-      setVideos([]);
-    } catch {
-      setAllocatedBatch(null);
-      setSelectedBatch(null);
-      toast.error("Failed to load batch info.");
+  useEffect(() => {
+    if (selectedBatchId) {
+      const vids = videos.filter(v => v.batchId === selectedBatchId);
+      setSelectedVideoId(vids.length ? vids[0].id : null);
     }
-  };
+  }, [selectedBatchId, videos]);
 
-  const handleEnterBatch = async () => {
-    try {
-      if (!allocatedBatch) return;
-      setSelectedBatch(allocatedBatch);
-      setLoadingVideos(true);
-      const response = await axios.get(`${API_URL}/videos`);
-      setVideos(response.data.filter(v => v.batchId === allocatedBatch.id));
-    } catch {
-      setVideos([]);
-      toast.error("Failed to load videos.");
-    } finally {
-      setLoadingVideos(false);
-    }
-  };
+  const batchVideoTitles = (batchId) =>
+    videos
+      .filter(v => v.batchId === batchId && v.title.toLowerCase().includes(search.toLowerCase()))
+      .map(video => ({ id: video.id, title: video.title }));
 
-  const handleBackToCourses = () => {
-    setSelectedCourse(null);
-    setAllocatedBatch(null);
-    setSelectedBatch(null);
-    setVideos([]);
-    setPlayingVideo(null);
-  };
-  const handleBackToBatch = () => {
-    setSelectedBatch(null);
-    setVideos([]);
-    setPlayingVideo(null);
-  };
-
-  const filteredCourses = userCourses.filter((course) =>
-    course.courseName.toLowerCase().includes(search.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+  return (
+    <div className="p-8 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-7 text-blue-900">My Learning</h2>
+      <div className="flex gap-2 mb-8 bg-blue-50 rounded-t-xl">
+        <button onClick={() => { setActiveTab("videos"); setSelectedBatchId(null); }} className={`px-7 py-2 rounded-t-xl font-bold border-b-2 transition ${activeTab === "videos" ? "text-blue-700 border-blue-700 bg-white" : "text-gray-600 border-transparent"}`}>Videos</button>
+        <button onClick={() => setActiveTab("assignments")} className={`px-7 py-2 rounded-t-xl font-bold border-b-2 transition ${activeTab === "assignments" ? "text-blue-700 border-blue-700 bg-white" : "text-gray-600 border-transparent"}`}>Assignments</button>
+        <button onClick={() => setActiveTab("certificates")} className={`px-7 py-2 rounded-t-xl font-bold border-b-2 transition flex items-center gap-2 ${activeTab === "certificates" ? "text-blue-700 border-blue-700 bg-white" : "text-gray-600 border-transparent"}`}><FaCertificate className="text-lg" /> Certificates</button>
       </div>
-    );
-  }
-
-  // Video Player Modal
-  if (playingVideo) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        <ToastContainer />
-        <div className="bg-gray-900 text-white p-4 flex items-center">
-          <button onClick={() => setPlayingVideo(null)} className="p-2 hover:bg-gray-800 rounded-lg">
-            <FaArrowLeft className="text-xl" />
-          </button>
-          <span className="ml-4 text-xl font-bold">{playingVideo.title}</span>
+      <div className="mb-7 flex">
+        <div className="relative w-full">
+          <input type="text" className="pl-10 pr-4 py-3 rounded-lg w-full border border-blue-200 focus:border-blue-600 text-lg shadow-sm" placeholder={`Search ${activeTab === "videos" ? (selectedBatchId ? "videos" : "batches or videos") : activeTab === "assignments" ? "assignments" : "courses"}`} value={search} onChange={e => setSearch(e.target.value)} />
+          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
         </div>
-        <div className="flex-1 flex items-center justify-center bg-black">
-          <div className="w-full h-full max-w-4xl">
-            <ReactPlayer
-              url={getPlayableUrl(playingVideo.videoUrl)}
-              controls
-              playing
-              width="100%"
-              height="100%"
-            />
-          </div>
-        </div>
-        {playingVideo.description && (
-          <div className="bg-gray-900 text-white p-6">{playingVideo.description}</div>
-        )}
       </div>
-    );
-  }
-
-  if (selectedBatch && allocatedBatch && selectedBatch.id === allocatedBatch.id) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <ToastContainer />
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <button onClick={handleBackToBatch} className="flex items-center text-gray-600 hover:text-gray-900 mb-4">
-              <FaArrowLeft className="mr-2" />
-              Back to Batch
-            </button>
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {selectedCourse?.title}
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  Batch {allocatedBatch?.batchNumber} - {allocatedBatch?.name}
-                </p>
+      {/* ---------- VIDEOS TAB ---------- */}
+      {activeTab === "videos" && (
+        loading ? (
+          <div className="p-6">Loading...</div>
+        ) : (
+          !selectedBatchId ? (
+            <div>
+              <h3 className="font-semibold text-lg mb-3">Your Enrolled Batches</h3>
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                {enrollments.filter(e =>
+                  courses.find(c => c.title === e.courseName && c.title.toLowerCase().includes(search.toLowerCase())) ||
+                  (batches.find(b => b.id === e.batchId)?.name || "").toLowerCase().includes(search.toLowerCase())
+                ).map(e => {
+                  const batch = batches.find(b => b.id === e.batchId);
+                  const course = courses.find(c => c.title === e.courseName);
+                  if (!batch || !course) return null;
+                  return (
+                    <div key={e.id} className="bg-white border rounded-xl p-5 shadow hover:shadow-md cursor-pointer flex flex-col justify-between" onClick={() => setSelectedBatchId(batch.id)}>
+                      <div>
+                        <div className="text-blue-900 font-bold text-xl">{course.title}</div>
+                        <div className="text-blue-600">{batch.name} (Batch {batch.batchNumber})</div>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600 mt-3">
+                        <span className="font-semibold">See Videos</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600">{videos.length}</div>
-                <div className="text-xs text-gray-500">Videos</div>
-              </div>
-            </div>
-          </div>
-          {loadingVideos ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-          ) : videos.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-              <FaVideo className="text-6xl text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Videos Yet</h3>
-              <p className="text-gray-600">Videos will appear here once uploaded by the admin</p>
+              {enrollments.length === 0 && (
+                <div className="p-8 text-gray-500 text-lg">You are not enrolled in any course batch.</div>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {videos
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .map((video, index) => (
-                  <div
-                    key={video.id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-200 cursor-pointer group"
-                    onClick={() => setPlayingVideo(video)}
-                  >
-                    <div className="relative bg-gray-200 aspect-video">
-                      <img
-                        src={video.thumbnail || "https://via.placeholder.com/320x180?text=Video"}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                        <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform">
-                          <svg className="w-8 h-8 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                        </div>
-                      </div>
-                      <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-sm font-semibold">
-                        #{video.order || index + 1}
-                      </div>
-                      {video.duration && (
-                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs">
-                          {video.duration} min
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {video.title}
-                      </h3>
-                      {video.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {video.description}
-                        </p>
-                      )}
-                      {video.uploadedAt && (
-                        <p className="text-xs text-gray-500 flex items-center">
-                          <FaCalendar className="mr-1" />
-                          {new Date(video.uploadedAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
+            // Video list & player split
+            <div className="flex gap-8">
+              <div className="w-1/3">
+                <button className="text-blue-600 hover:underline mb-5" onClick={() => setSelectedBatchId(null)}>← Back to Batches</button>
+                <h4 className="font-semibold mb-4">Videos</h4>
+                <div className="bg-white rounded-md border">
+                  {batchVideoTitles(selectedBatchId).length === 0 ? (
+                    <div className="p-4 text-gray-500">No videos uploaded for this batch.</div>
+                  ) : (
+                    <ul>
+                      {batchVideoTitles(selectedBatchId).map(video => (
+                        <li key={video.id} className={`p-4 border-b cursor-pointer hover:bg-blue-50 ${video.id === selectedVideoId ? "bg-blue-100 font-bold" : ""}`} onClick={() => setSelectedVideoId(video.id)}>
+                          {video.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1">
+                {selectedVideoId ? (
+                  <div className="bg-white rounded-lg border p-6">
+                    <ReactPlayer url={videos.find(v => v.id === selectedVideoId)?.url || ""} controls width="100%" height="360px" style={{ background: "#000" }} />
+                    <div className="mt-2 font-semibold">{videos.find(v => v.id === selectedVideoId)?.title}</div>
+                    <div className="mb-2 text-gray-600">{videos.find(v => v.id === selectedVideoId)?.description}</div>
                   </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Main Courses UI (rich previous version)
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <ToastContainer />
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Courses</h1>
-          <p className="text-gray-600">Access your enrolled courses and learning materials</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 w-full">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search your courses..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setView("list")}
-                className={`p-2 rounded-lg transition-colors ${
-                  view === "list"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                }`}
-              >
-                <FaList />
-              </button>
-              <button
-                onClick={() => setView("grid")}
-                className={`p-2 rounded-lg transition-colors ${
-                  view === "grid"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                }`}
-              >
-                <FaThLarge />
-              </button>
-            </div>
-          </div>
-        </div>
-        {filteredCourses.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <FaBook className="text-6xl text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {search ? "No courses found" : "No Enrolled Courses"}
-            </h3>
-            <p className="text-gray-600">
-              {search
-                ? "Try adjusting your search"
-                : "You haven't been approved for any courses yet."}
-            </p>
-          </div>
-        ) : view === "list" ? (
-          <div className="space-y-4">
-            {filteredCourses.map((course) => (
-              <div
-                key={course.id}
-                onClick={() => handleCourseClick(course)}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-6"
-              >
-                <img
-                  src={course.courseImg || "https://via.placeholder.com/150"}
-                  alt={course.courseName}
-                  className="w-24 h-24 rounded-lg object-cover"
-                />
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
-                    {course.courseName}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Enrolled on: {course.enrolledDate}
-                  </p>
-                  <button
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg mt-2 hover:bg-green-700"
-                    onClick={e => { e.stopPropagation(); handleCourseClick(course); setTimeout(handleEnterBatch, 300); }}
-                  >
-                    Enter Batch
-                  </button>
-                </div>
+                ) : (
+                  <div className="p-16 text-gray-500 text-center">Select a video from the left panel</div>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map((course) => (
-              <div
-                key={course.id}
-                onClick={() => handleCourseClick(course)}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-200 cursor-pointer group"
-              >
-                <img
-                  src={course.courseImg || "https://via.placeholder.com/150"}
-                  alt={course.courseName}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-5">
-                  <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
-                    {course.courseName}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Enrolled: {course.enrolledDate}
-                  </p>
-                  <button
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg mt-2 hover:bg-green-700"
-                    onClick={e => { e.stopPropagation(); handleCourseClick(course); setTimeout(handleEnterBatch, 300); }}
-                  >
-                    Enter Batch
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          )
+        )
+      )}
+      {/* ---------- ASSIGNMENTS TAB ---------- */}
+      {activeTab === "assignments" && selectedBatchId && (
+        <div className="py-4">
+          <Assignment batchId={selectedBatchId} userId={userId} />
+        </div>
+      )}
+      {/* ---------- CERTIFICATES TAB ---------- */}
+      {activeTab === "certificates" && (
+<CertificateManagement userId={username} userName={username} email={email} />
+      )}
     </div>
   );
 };

@@ -1,265 +1,191 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function AdminAssignments() {
-  // Sample assignment data
-  const sampleAssignments = [
-    {
-      id: "a1",
-      title: "React Project 1",
-      course: "React for Beginners",
-      user: "Lakshmi V.",
-      dueDate: "2025-11-01",
-      status: "Pending",
-      description: "Build a small React app using hooks and components.",
-    },
-    {
-      id: "a2",
-      title: "SQL Query Optimization",
-      course: "Advanced SQL Queries",
-      user: "N. Srikanth",
-      dueDate: "2025-10-25",
-      status: "Completed",
-      description: "Optimize given SQL queries and submit performance report.",
-    },
-  ];
+  const API_URL = import.meta.env.VITE_API_URL;
+  const [assignments, setAssignments] = useState([]);
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "", courseId: "", batchId: "" });
+  const [editing, setEditing] = useState(null);
+  const [batches, setBatches] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
 
-  const [assignments, setAssignments] = useState(sampleAssignments);
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  useEffect(() => {
+    axios.get(`${API_URL}/assignments`).then(res => setAssignments(res.data));
+    axios.get(`${API_URL}/courses`).then(res => setCourses(res.data));
+    axios.get(`${API_URL}/batches`).then(res => setBatches(res.data));
+  }, [API_URL]);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editAssignment, setEditAssignment] = useState({
-    id: "",
-    title: "",
-    course: "",
-    user: "",
-    dueDate: "",
-    status: "Pending",
-    description: "",
-  });
-
-  // Search & filter
-  const filtered = useMemo(() => {
-    return assignments.filter((a) => {
-      const matchesQuery =
-        query === "" ||
-        a.title.toLowerCase().includes(query.toLowerCase()) ||
-        a.course.toLowerCase().includes(query.toLowerCase()) ||
-        a.user.toLowerCase().includes(query.toLowerCase());
-      const matchesStatus = statusFilter === "All" || a.status === statusFilter;
-      return matchesQuery && matchesStatus;
-    });
-  }, [assignments, query, statusFilter]);
-
-  // CRUD Handlers
-  const handleAddAssignment = () => {
-    const newAssignment = { ...editAssignment, id: Date.now().toString() };
-    setAssignments([...assignments, newAssignment]);
-    setEditAssignment({
-      id: "",
-      title: "",
-      course: "",
-      user: "",
-      dueDate: "",
-      status: "Pending",
-      description: "",
-    });
-    setIsEditing(false);
+  // View submissions for selected assignment
+  const handleViewSubmissions = assignment => {
+    setSelectedAssignment(assignment);
+    axios.get(`${API_URL}/submissions?assignmentId=${assignment.id}`)
+      .then(res => setSubmissions(res.data));
   };
 
-  const handleUpdateAssignment = () => {
-    setAssignments(
-      assignments.map((a) => (a.id === editAssignment.id ? editAssignment : a))
-    );
-    setEditAssignment({
-      id: "",
-      title: "",
-      course: "",
-      user: "",
-      dueDate: "",
-      status: "Pending",
-      description: "",
+  const handleFormSubmit = async e => {
+    e.preventDefault();
+    if (editing) {
+      await axios.put(`${API_URL}/assignments/${editing.id}`, {...editing, ...form});
+      setAssignments(assignments.map(a =>
+        a.id === editing.id ? {...a, ...form} : a
+      ));
+      setEditing(null);
+    } else {
+      const newAssignment = {...form, id: `a${Date.now()}`};
+      await axios.post(`${API_URL}/assignments`, newAssignment);
+      setAssignments([...assignments, newAssignment]);
+    }
+    setForm({ title: "", description: "", dueDate: "", courseId: "", batchId: "" });
+  };
+
+  const handleEdit = assignment => {
+    setEditing(assignment);
+    setForm({
+      title: assignment.title,
+      description: assignment.description,
+      dueDate: assignment.dueDate,
+      courseId: assignment.courseId,
+      batchId: assignment.batchId,
     });
-    setIsEditing(false);
   };
 
-  const handleDeleteAssignment = (id) => {
-    setAssignments(assignments.filter((a) => a.id !== id));
-  };
-
-  const handleEditClick = (a) => {
-    setIsEditing(true);
-    setEditAssignment(a);
+  const handleDelete = async id => {
+    await axios.delete(`${API_URL}/assignments/${id}`);
+    setAssignments(assignments.filter(a => a.id !== id));
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <h1 className="text-3xl font-semibold text-gray-800">Assignments</h1>
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={() => {
-              setIsEditing(true);
-              setEditAssignment({
-                id: "",
-                title: "",
-                course: "",
-                user: "",
-                dueDate: "",
-                status: "Pending",
-                description: "",
-              });
-            }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:opacity-95"
-          >
-            + Add Assignment
-          </button>
-        </div>
-        <div className="mt-2 flex flex-col md:flex-row gap-2 w-full md:w-auto">
+    <div className="max-w-5xl mx-auto p-8">
+      <h2 className="text-2xl font-bold mb-4">Assignments Management</h2>
+      <form className="bg-blue-50 rounded px-6 pt-5 pb-6 mb-7" onSubmit={handleFormSubmit}>
+        <div className="flex flex-col md:flex-row gap-3 mb-3">
           <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by title, course, or user..."
-            className="border rounded-lg p-2 flex-1"
+            type="text"
+            value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            className="border rounded px-3 py-2 flex-1"
+            placeholder="Assignment Title"
+            required
           />
+          <input
+            type="date"
+            value={form.dueDate}
+            onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+            className="border rounded px-3 py-2"
+            required
+          />
+        </div>
+        <textarea
+          className="border rounded px-3 py-2 w-full mb-2"
+          value={form.description}
+          onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          placeholder="Assignment description"
+        />
+        <div className="flex gap-3 mb-3">
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded-lg p-2"
-          >
-            <option value="All">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
+            value={form.courseId}
+            onChange={e => setForm(f => ({ ...f, courseId: e.target.value }))}
+            className="border rounded px-3 py-2"
+            required>
+            <option value="">Choose Course</option>
+            {courses.map(c => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+          <select
+            value={form.batchId}
+            onChange={e => setForm(f => ({ ...f, batchId: e.target.value }))}
+            className="border rounded px-3 py-2"
+            required>
+            <option value="">Choose Batch</option>
+            {batches.filter(b => !form.courseId || b.courseId === form.courseId).map(b => (
+              <option key={b.id} value={b.id}>
+                {b.name || `Batch ${b.batchNumber}`}
+              </option>
+            ))}
           </select>
         </div>
-      </header>
+        <button type="submit" className="bg-blue-600 text-white px-5 py-2 rounded font-bold">
+          {editing ? "Save Changes" : "Create Assignment"}
+        </button>
+        {editing && (
+          <button type="button" onClick={() => setEditing(null)} className="ml-3 text-gray-500 underline">
+            Cancel Edit
+          </button>
+        )}
+      </form>
 
-      {/* Add/Edit Form */}
-      {isEditing && (
-        <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {editAssignment.id ? "Edit Assignment" : "Add New Assignment"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Assignment Title"
-              value={editAssignment.title}
-              onChange={(e) =>
-                setEditAssignment({ ...editAssignment, title: e.target.value })
-              }
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="Course"
-              value={editAssignment.course}
-              onChange={(e) =>
-                setEditAssignment({ ...editAssignment, course: e.target.value })
-              }
-              className="border p-2 rounded"
-            />
-            <input
-              type="text"
-              placeholder="User"
-              value={editAssignment.user}
-              onChange={(e) =>
-                setEditAssignment({ ...editAssignment, user: e.target.value })
-              }
-              className="border p-2 rounded"
-            />
-            <input
-              type="date"
-              placeholder="Due Date"
-              value={editAssignment.dueDate}
-              onChange={(e) =>
-                setEditAssignment({ ...editAssignment, dueDate: e.target.value })
-              }
-              className="border p-2 rounded"
-            />
-            <select
-              value={editAssignment.status}
-              onChange={(e) =>
-                setEditAssignment({ ...editAssignment, status: e.target.value })
-              }
-              className="border p-2 rounded"
-            >
-              <option value="Pending">Pending</option>
-              <option value="Completed">Completed</option>
-            </select>
-            <textarea
-              placeholder="Description"
-              value={editAssignment.description}
-              onChange={(e) =>
-                setEditAssignment({ ...editAssignment, description: e.target.value })
-              }
-              className="border p-2 rounded md:col-span-2"
-            />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={editAssignment.id ? handleUpdateAssignment : handleAddAssignment}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              {editAssignment.id ? "Update Assignment" : "Add Assignment"}
-            </button>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              Cancel
-            </button>
+      <table className="min-w-full border mb-8 bg-white rounded shadow">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2">Title</th>
+            <th className="p-2">Course</th>
+            <th className="p-2">Batch</th>
+            <th className="p-2">Batch Number</th>
+            <th className="p-2">Due Date</th>
+            <th className="p-2">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {assignments.map(a => {
+            const batch = batches.find(b => b.id === a.batchId);
+            return (
+              <tr key={a.id}>
+                <td className="p-2">{a.title}</td>
+                <td className="p-2">{courses.find(c => c.id === a.courseId)?.title || "--"}</td>
+                <td className="p-2">{batch?.name || "--"}</td>
+                <td className="p-2">{batch?.batchNumber || "--"}</td>
+                <td className="p-2">{a.dueDate}</td>
+                <td className="p-2 flex gap-2">
+                  <button onClick={() => handleEdit(a)} className="text-blue-600 underline">Edit</button>
+                  <button onClick={() => handleDelete(a.id)} className="text-red-500 underline">Delete</button>
+                  <button onClick={() => handleViewSubmissions(a)} className="text-green-700 underline">View Submissions</button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Submissions modal */}
+      {selectedAssignment && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl relative">
+            <button onClick={() => setSelectedAssignment(null)} className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-gray-800">×</button>
+            <h3 className="text-lg font-bold mb-2">
+              Submissions for: {selectedAssignment.title}
+            </h3>
+            {submissions.length === 0 ? (
+              <p className="text-gray-500">No submissions yet.</p>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-2">Name</th>
+                    <th className="p-2">Answer</th>
+                    <th className="p-2">Link</th>
+                    <th className="p-2">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map(s => (
+                    <tr key={s.id}>
+                      <td className="p-2">{s.userName}</td>
+                      <td className="p-2">{s.answer || "-"}</td>
+                      <td className="p-2">
+                        {s.fileUrl ? <a className="underline text-blue-600" href={s.fileUrl} target="_blank" rel="noopener noreferrer">File</a> : "-"}
+                      </td>
+                      <td className="p-2">{s.submittedDate?.slice(0, 10)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
-
-      {/* Assignments Table */}
-      <div className="max-w-7xl mx-auto bg-white shadow rounded-2xl overflow-x-auto">
-        <table className="w-full table-auto">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left">Title</th>
-              <th className="px-4 py-2 text-left">Course</th>
-              <th className="px-4 py-2 text-left">User</th>
-              <th className="px-4 py-2 text-left">Due Date</th>
-              <th className="px-4 py-2 text-left">Status</th>
-              <th className="px-4 py-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((a) => (
-              <tr key={a.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-2">{a.title}</td>
-                <td className="px-4 py-2">{a.course}</td>
-                <td className="px-4 py-2">{a.user}</td>
-                <td className="px-4 py-2">{a.dueDate}</td>
-                <td className="px-4 py-2">{a.status}</td>
-                <td className="px-4 py-2 flex gap-2">
-                  <button
-                    onClick={() => handleEditClick(a)}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteAssignment(a.id)}
-                    className="px-2 py-1 bg-red-600 text-white rounded"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center py-4 text-gray-500">
-                  No assignments found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

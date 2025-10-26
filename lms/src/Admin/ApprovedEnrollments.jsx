@@ -9,7 +9,10 @@ import {
   FaChevronRight,
   FaArrowLeft,
   FaSearch,
+  FaChalkboardTeacher,
 } from "react-icons/fa";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit, faTrash, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 export default function ApprovedEnrollments() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -21,7 +24,11 @@ export default function ApprovedEnrollments() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState(null);
 
-  // Fetch all on mount
+  // CRUD state
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "" });
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
@@ -38,15 +45,29 @@ export default function ApprovedEnrollments() {
     fetchAll();
   }, [API_URL]);
 
-  // 1. Filtered courses with at least one enrollment
+  function getSortableDate(item) {
+    if (!item.enrolledDate) return 0;
+    const parsed = Date.parse(item.enrolledDate);
+    if (!isNaN(parsed)) return parsed;
+    const d = item.enrolledDate.split("/");
+    if (d.length === 3) return Date.parse(`${d[2]}-${d[1]}-${d[0]}`);
+    return 0;
+  }
+
+  // Course search & navigation
   let courseList = courses
     .map((c) => ({
       ...c,
-      enrollments: approved.filter((a) => a.courseName === c.title),
+      enrollments: approved.filter((a) => a.courseName === c.title)
     }))
-    .filter((c) => c.enrollments.length > 0);
+    .filter((c) => c.enrollments.length > 0)
+    .map((c) => ({
+      ...c,
+      enrollments: [...c.enrollments].sort(
+        (a, b) => getSortableDate(b) - getSortableDate(a)
+      ),
+    }));
 
-  // 2. Global smart search (course title, user name, or email)
   if (search.trim()) {
     const S = search.trim().toLowerCase();
     courseList = courseList
@@ -62,27 +83,26 @@ export default function ApprovedEnrollments() {
       .filter((c) => c.enrollments.length > 0);
   }
 
-  // 3. Batches for selected course
+  // Drill-down: batches for a course
   const courseBatches =
     selectedCourse &&
-    batches.filter((b) => {
-      return (
+    batches.filter(
+      (b) =>
         b.courseId === selectedCourse.id ||
         (b.courseName && b.courseName === selectedCourse.title)
-      );
-    });
+    );
 
-  // 4. Enrollments for selected batch (within selected course)
+  // Drill-down: user cards for a batch sorted by most recent
   const batchEnrollments =
     selectedBatch && selectedCourse
-      ? approved.filter(
-          (e) =>
-            e.batchId === selectedBatch.id &&
-            e.courseName === selectedCourse.title
-        )
+      ? approved
+          .filter(
+            (e) =>
+              e.batchId === selectedBatch.id &&
+              e.courseName === selectedCourse.title
+          )
+          .sort((a, b) => getSortableDate(b) - getSortableDate(a))
       : [];
-
-  // --- UI ---
 
   if (loading) {
     return (
@@ -93,7 +113,7 @@ export default function ApprovedEnrollments() {
     );
   }
 
-  // Batch user roster view
+  // Batch user CRUD cards
   if (selectedBatch && selectedCourse) {
     return (
       <div className="max-w-6xl mx-auto p-5 min-h-screen">
@@ -124,8 +144,8 @@ export default function ApprovedEnrollments() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {batchEnrollments.map((e) => (
               <div
-                key={e.id || e.email + e.courseName + e.batchId}
-                className="bg-white shadow rounded-xl p-5 border border-blue-100 hover:shadow-xl transition-all"
+                key={e.id}
+                className="bg-white shadow rounded-xl p-5 border border-blue-100 hover:shadow-xl transition-all relative"
               >
                 <div className="flex items-center gap-4 mb-3">
                   <FaUserCircle className="text-4xl text-blue-900" />
@@ -142,24 +162,147 @@ export default function ApprovedEnrollments() {
                   <FaCalendarAlt />
                   <span>
                     {e.enrolledDate
-                      ? new Date(e.enrolledDate).toLocaleDateString()
-                      : "-"}
+                      ? new Date(getSortableDate(e)).toLocaleDateString()
+                      : "Invalid Date"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-700 text-xs">
                   <FaBookOpen />
                   <span>{e.courseName}</span>
                 </div>
+                {/* CRUD icons */}
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    title="Edit"
+                    className="text-blue-500 hover:text-blue-700 p-1 rounded"
+                    onClick={() => {
+                      setEditing(e);
+                      setEditForm({ name: e.name, email: e.email });
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </button>
+                  <button
+                    title="Delete"
+                    className="text-red-500 hover:text-red-700 p-1 rounded"
+                    onClick={async () => {
+                      if (window.confirm("Delete this enrollment?")) {
+                        await axios.delete(`${API_URL}/enrolledcourses/${e.id}`);
+                        setApproved((prev) => prev.filter((a) => a.id !== e.id));
+                      }
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
               </div>
             ))}
+          </div>
+        )}
+        {/* --- EDIT MODAL --- */}
+        {editing && (
+          <div className="fixed z-50 inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative">
+              <button
+                className="absolute right-4 top-4 text-lg text-gray-400 hover:text-gray-700"
+                onClick={() => setEditing(null)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+              <h3 className="font-bold text-lg text-blue-900 mb-4">Edit Enrollment</h3>
+              <form
+                onSubmit={async (ev) => {
+                  ev.preventDefault();
+                  setSaving(true);
+                  await axios.put(`${API_URL}/enrolledcourses/${editing.id}`, {
+                    ...editing,
+                    name: editForm.name,
+                    email: editForm.email,
+                  });
+                  setApproved((prev) =>
+                    prev.map((a) =>
+                      a.id === editing.id
+                        ? { ...a, name: editForm.name, email: editForm.email }
+                        : a
+                    )
+                  );
+                  setEditing(null);
+                  setSaving(false);
+                }}
+                className="flex flex-col gap-3"
+              >
+                <label className="text-sm font-medium text-gray-700">
+                  Name
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    className="w-full mt-1 border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                    required
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Email
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, email: e.target.value }))
+                    }
+                    className="w-full mt-1 border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                    required
+                  />
+                </label>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 font-medium"
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    className="flex-1 px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium"
+                    onClick={() => setEditing(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
     );
   }
 
-  // Batches view for one course
+  // Drilldown for batches (same as before)
   if (selectedCourse) {
+    const sortedBatches =
+      courseBatches &&
+      [...courseBatches].sort((a, b) => {
+        const aMax = Math.max(
+          ...approved
+            .filter(
+              (e) =>
+                e.batchId === a.id && e.courseName === selectedCourse.title
+            )
+            .map(getSortableDate)
+        );
+        const bMax = Math.max(
+          ...approved
+            .filter(
+              (e) =>
+                e.batchId === b.id && e.courseName === selectedCourse.title
+            )
+            .map(getSortableDate)
+        );
+        return (bMax || 0) - (aMax || 0);
+      });
     return (
       <div className="max-w-6xl mx-auto p-5 min-h-screen">
         <button
@@ -174,14 +317,14 @@ export default function ApprovedEnrollments() {
         <p className="text-lg text-gray-600 mb-3">
           Click on a batch to view enrolled users in that batch.
         </p>
-        {courseBatches.length === 0 ? (
+        {sortedBatches.length === 0 ? (
           <div className="p-12 bg-white shadow rounded-lg flex flex-col align-center items-center">
             <FaIdBadge className="text-5xl text-blue-200 mb-2" />
             <div className="text-lg text-gray-700">No batches for this course yet.</div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courseBatches.map((batch) => {
+            {sortedBatches.map((batch) => {
               const enrolledCount = approved.filter(
                 (e) =>
                   e.batchId === batch.id &&
@@ -220,7 +363,12 @@ export default function ApprovedEnrollments() {
     );
   }
 
-  // Main: Courses grid + search
+  // Main grid: courses sorted, global search
+  courseList = courseList.sort(
+    (a, b) =>
+      getSortableDate(b.enrollments[0]) - getSortableDate(a.enrollments[0])
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-green-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -266,7 +414,7 @@ export default function ApprovedEnrollments() {
                   {c.title}
                 </div>
                 <div className="text-gray-700 font-semibold mb-1 flex items-center gap-2">
-                  {/* <FaChalkboardTeacher /> */}
+                  <FaChalkboardTeacher />
                   {c.instructor}
                 </div>
                 <div className="text-green-800 font-medium mb-3">

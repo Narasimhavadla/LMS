@@ -20,11 +20,11 @@ const Navbar = () => {
             <Link to="/service" className="hover:text-gray-200">Services</Link>
 
             {/* Show Assignments only if user is logged in AND not admin */}
-            {isLoggedIn && role !== "admin" && (
+            {/* {isLoggedIn && role !== "admin" && (
               <Link to="/assignment" className="hover:text-gray-200">
                 Assignments
               </Link>
-            )}
+            )} */}
 
             <Link to="/editor" className="hover:text-gray-200">Compiler</Link>
 

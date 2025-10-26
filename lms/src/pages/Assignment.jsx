@@ -1,156 +1,111 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { FaRegCheckCircle, FaArrowLeft, FaLink } from "react-icons/fa";
 
-export default function Assignment() {
-  const [assignments, setAssignments] = useState([
-    {
-      id: 1,
-      title: "Java Basics - OOP Concepts",
-      course: "Java Programming",
-      dueDate: "2025-10-25",
-      status: "Pending",
-      marks: 0,
-      description: "Write a Java program demonstrating inheritance, polymorphism, and encapsulation.",
-    },
-    {
-      id: 2,
-      title: "React Components Project",
-      course: "Frontend Development",
-      dueDate: "2025-10-22",
-      status: "Submitted",
-      marks: 90,
-      description: "Build a React app showcasing the use of props, state, and hooks.",
-    },
-    {
-      id: 3,
-      title: "SQL Joins and Queries",
-      course: "Database Systems",
-      dueDate: "2025-10-28",
-      status: "Overdue",
-      marks: 0,
-      description: "Solve 10 SQL problems involving joins, aggregations, and subqueries.",
-    },
-  ]);
-
+export default function Assignment({ batchId, userId }) {
+  const API_URL = import.meta.env.VITE_API_URL;
+  const [assignments, setAssignments] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [fileUrl, setFileUrl] = useState("");
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch assignments for this batch
+  useEffect(() => {
+    if (!batchId) return;
+    axios.get(`${API_URL}/assignments?batchId=${batchId}`)
+      .then(res => setAssignments(res.data || []));
+  }, [API_URL, batchId]);
+
+  // Check if user submitted for this assignment
+  useEffect(() => {
+    if (!selected) return;
+    axios
+      .get(`${API_URL}/submissions?assignmentId=${selected.id}&userId=${userId}`)
+      .then(res => setHasSubmitted((res.data || []).length > 0));
+  }, [selected, userId, API_URL]);
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setSubmitting(true);
+    await axios.post(`${API_URL}/submissions`, {
+      userId,
+      assignmentId: selected.id,
+      batchId,
+      fileUrl,
+      submittedDate: new Date().toISOString()
+    });
+    setHasSubmitted(true);
+    setSubmitting(false);
+    setSelected(null);
+    setFileUrl("");
+    alert("Assignment submitted!");
+  };
+
+  if (!assignments.length) {
+    return <div className="text-gray-500 text-lg mt-10 text-center">No assignments for this batch.</div>;
+  }
+
+  if (selected) {
+    return (
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg border mt-10 p-6 relative">
+        <button
+          className="flex items-center gap-2 mb-4 text-blue-600 hover:underline absolute left-4 top-4"
+          onClick={() => setSelected(null)}>
+          <FaArrowLeft /> Back
+        </button>
+        <h2 className="text-2xl font-bold mb-3">{selected.title}</h2>
+        <p className="mb-2 text-gray-700">{selected.description}</p>
+        <div className="mb-1 text-sm"><span className="font-medium">Due:</span> {selected.dueDate}</div>
+        {hasSubmitted ? (
+          <div className="text-green-600 flex items-center gap-2 mt-4"><FaRegCheckCircle /> You have already submitted!</div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-5">
+            <label className="block mb-2 font-semibold" htmlFor="gdrive">
+              <FaLink className="inline mr-2" />Upload Google Drive link
+            </label>
+            <input
+              type="url"
+              id="gdrive"
+              value={fileUrl}
+              onChange={e => setFileUrl(e.target.value)}
+              className="border rounded w-full px-4 py-2 mb-3 focus:ring-2 focus:ring-blue-200"
+              placeholder="https://drive.google.com/..."
+              required
+            />
+            <button
+              type="submit"
+              disabled={submitting || !fileUrl}
+              className="bg-blue-700 text-white px-6 py-2 mt-2 rounded font-bold hover:bg-blue-900 transition"
+            >
+              {submitting ? "Submitting..." : "Submit Assignment"}
+            </button>
+          </form>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-6">
-      <header className="max-w-7xl mx-auto mb-6">
-        <h1 className="text-3xl font-semibold text-gray-800 mb-2">Assignments</h1>
-        <p className="text-gray-500 text-sm">
-          View, manage, and submit your ongoing course assignments.
-        </p>
-      </header>
-
-      <main className="max-w-7xl mx-auto">
-        <div className="overflow-x-auto bg-white rounded-2xl shadow-md border border-gray-100">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-indigo-600 text-white text-sm">
-              <tr>
-                <th className="py-3 px-4">Title</th>
-                <th className="py-3 px-4">Course</th>
-                <th className="py-3 px-4">Due Date</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Marks</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((a) => (
-                <tr
-                  key={a.id}
-                  className="border-t hover:bg-gray-50 cursor-pointer text-sm"
-                  onClick={() => setSelected(a)}
-                >
-                  <td className="py-3 px-4 font-medium text-gray-800">{a.title}</td>
-                  <td className="py-3 px-4 text-gray-600">{a.course}</td>
-                  <td className="py-3 px-4 text-gray-600">{a.dueDate}</td>
-                  <td className={`py-3 px-4 font-medium ${
-                    a.status === "Pending"
-                      ? "text-yellow-600"
-                      : a.status === "Submitted"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}>{a.status}</td>
-                  <td className="py-3 px-4 text-gray-600">{a.marks > 0 ? a.marks : "-"}</td>
-                  <td className="py-3 px-4 text-right">
-                    <button className="px-3 py-1 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700">
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Assignment Details Modal */}
-        {selected && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
-              <button
-                onClick={() => setSelected(null)}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-
-              <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                {selected.title}
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">{selected.course}</p>
-
-              <p className="text-gray-700 text-sm leading-relaxed mb-4">
-                {selected.description}
-              </p>
-
-              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <span className="font-medium text-gray-800">Due Date:</span>
-                  <p className="text-gray-600">{selected.dueDate}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-800">Status:</span>
-                  <p className={`text-sm ${
-                    selected.status === "Pending"
-                      ? "text-yellow-600"
-                      : selected.status === "Submitted"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}>{selected.status}</p>
-                </div>
-              </div>
-
-              {selected.status === "Pending" && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload Your File
-                  </label>
-                  <input
-                    type="file"
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm"
-                  />
-                  <button className="mt-4 px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
-                    Submit Assignment
-                  </button>
-                </div>
-              )}
-
-              {selected.status === "Submitted" && (
-                <p className="text-green-600 text-sm font-medium mt-4">
-                  ✅ Assignment already submitted. Marks: {selected.marks}
-                </p>
-              )}
-
-              {selected.status === "Overdue" && (
-                <p className="text-red-600 text-sm font-medium mt-4">
-                  ⚠️ Submission closed for this assignment.
-                </p>
-              )}
+    <div className="grid sm:grid-cols-2 gap-6 px-2 max-w-4xl mx-auto mt-10">
+      {assignments.map(a => (
+        <div
+          key={a.id}
+          className="bg-white rounded-xl shadow-lg p-5 border hover:border-blue-600 cursor-pointer group transition"
+          onClick={() => setSelected(a)}
+        >
+          <div className="text-xl font-bold text-blue-900 group-hover:underline">{a.title}</div>
+          <div className="text-gray-700 mt-1 line-clamp-2">{a.description}</div>
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-gray-600 font-medium">
+              Due: <span className="font-bold">{a.dueDate}</span>
             </div>
+            <button className="bg-blue-100 text-blue-700 px-3 py-1 rounded group-hover:bg-blue-700 group-hover:text-white transition">
+              View & Submit
+            </button>
           </div>
-        )}
-      </main>
+        </div>
+      ))}
     </div>
   );
 }
