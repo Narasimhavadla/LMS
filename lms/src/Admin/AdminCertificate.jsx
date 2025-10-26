@@ -11,7 +11,7 @@ export default function CertificateRequestsAdmin() {
     // Normally you would generate a real certificate file/url
     await axios.put(`${API_URL}/certificates/${req.id}`, {
       ...req,
-      status: "issued",
+      status: "completed",
       issuedDate: new Date().toISOString(),
       downloadUrl: "/certificates/" + req.id + ".pdf"
     });
