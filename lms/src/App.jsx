@@ -29,8 +29,8 @@ import AdminEnrollments from './Admin/AdminEnrollPage'
 import ContactAdvisor from './Components/ContactCourseAdvisor'
 import AddAdmin from './Admin/AddAdmin'
 import AdminUserActivity from './Admin/AdminUserActivity'
-
-
+import VideoUploadManager from './Admin/VideoUploadManager'
+import ApprovedEnrollments from './Admin/ApprovedEnrollments'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -62,6 +62,8 @@ function App() {
           <Route path='/contactadvisor/:id' element={<ContactAdvisor/>}></Route>
           <Route path='/addadmin' element={<AddAdmin/>}></Route>
           <Route path='/admin-user-activity' element={<AdminUserActivity/>}></Route>
+          <Route path='/admin-video-upload' element={<VideoUploadManager/>}></Route>
+          <Route path='/aproved-enrollments' element={<ApprovedEnrollments/>}></Route>
 
 
           <Route 

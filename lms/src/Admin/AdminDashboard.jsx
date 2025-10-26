@@ -5,6 +5,8 @@ import SkillManagement from "../Components/skillManagment";
 import AdminEnrollments from "./AdminEnrollPage";
 import AddAdmin from "./AddAdmin";
 import AdminUserActivity from "./AdminUserActivity";
+import VideoUploadManager from "./VideoUploadManager";
+import ApprovedEnrollments from "./ApprovedEnrollments";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -139,6 +141,18 @@ const AdminDashboard = () => {
               <AdminUserActivity />
             </div>
           );
+          case "videoUpload" :
+          return (
+            <div>
+              <VideoUploadManager />
+            </div>
+          );
+          case "approvedEnrollment" :
+          return (
+            <div>
+              <ApprovedEnrollments />
+            </div>
+          );
       default:
         return null;
     }
@@ -166,12 +180,28 @@ const AdminDashboard = () => {
           Enrollments
         </button>
         <button
+          onClick={() => setActiveTab("approvedEnrollment")}
+          className={`py-3 px-4 rounded text-left font-semibold ${
+            activeTab === "approvedEnrollment" ? "bg-blue-600" : "hover:bg-gray-700"
+          }`}
+        >
+          Approved Enrollments
+        </button>
+        <button
           onClick={() => setActiveTab("skills")}
           className={`py-3 px-4 rounded text-left font-semibold ${
             activeTab === "skills" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
           Course Management
+        </button>
+        <button
+          onClick={() => setActiveTab("videoUpload")}
+          className={`py-3 px-4 rounded text-left font-semibold ${
+            activeTab === "videoUpload" ? "bg-blue-600" : "hover:bg-gray-700"
+          }`}
+        >
+          Add Videos
         </button>
         <button
           onClick={() => setActiveTab("assignments")}

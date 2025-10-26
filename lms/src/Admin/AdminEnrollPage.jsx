@@ -5,20 +5,17 @@ import { FaTrashAlt, FaCheck } from "react-icons/fa";
 export default function AdminEnrollments() {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(null);
   const [credentials, setCredentials] = useState({});
+  const [batchSelections, setBatchSelections] = useState({});
+  const [courseBatches, setCourseBatches] = useState({});
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchEnrollments = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`${API_URL}/enrollments`);
-        const sorted = [...res.data].sort(
-          (a, b) => new Date(b.filledDate) - new Date(a.filledDate)
-        );
-        setEnrollments(sorted);
-      } catch (err) {
-        console.error("Error fetching enrollments:", err);
+        setEnrollments(res.data);
       } finally {
         setLoading(false);
       }
@@ -26,26 +23,27 @@ export default function AdminEnrollments() {
     fetchEnrollments();
   }, []);
 
+  const fetchBatches = async (courseName, enrollId) => {
+    const coursesRes = await axios.get(`${API_URL}/courses`);
+    const course = coursesRes.data.find((c) => c.title === courseName);
+    if (!course) return setCourseBatches((prev)=>({...prev, [enrollId]: []}));
+    const batchesRes = await axios.get(`${API_URL}/batches`);
+    const batches = batchesRes.data.filter((b) => b.courseId === course.id);
+    setCourseBatches((prev) => ({ ...prev, [enrollId]: batches }));
+  };
+
   const handleApprove = async (id) => {
     const enroll = enrollments.find((e) => e.id === id);
     const creds = credentials[id];
-
-    if (!creds?.username || !creds?.password) {
-      alert("Please enter username and password before approving.");
+    const batchId = batchSelections[id];
+    if (!creds?.username || !creds?.password || !batchId) {
+      alert("Please enter username, password, and select batch.");
       return;
     }
-
     try {
-      // 1️⃣ Mark as approved
-      const updatedEnroll = {
-        ...enroll,
-        isApproved: true,
-        username: creds.username,
-        password: creds.password,
-      };
+      const updatedEnroll = { ...enroll, isApproved: true, username: creds.username, password: creds.password };
       await axios.put(`${API_URL}/enrollments/${id}`, updatedEnroll);
 
-      // 2️⃣ Add user to users API
       await axios.post(`${API_URL}/users`, {
         name: enroll.name,
         email: enroll.email,
@@ -54,144 +52,149 @@ export default function AdminEnrollments() {
         role: "user",
       });
 
-      // 3️⃣ Add to enrolledcourses API
       await axios.post(`${API_URL}/enrolledcourses`, {
+        name: enroll.name,
         email: enroll.email,
         courseName: enroll.courseName,
         enrolledDate: enroll.filledDate,
         courseImg: enroll.img || "https://via.placeholder.com/150",
+        batchId,
       });
 
-      // 4️⃣ Update UI
-      setEnrollments((prev) =>
-        prev.map((e) => (e.id === id ? updatedEnroll : e))
-      );
-      setCredentials((prev) => ({ ...prev, [id]: {} }));
-      alert(`✅ ${enroll.name} approved and added to enrolled courses!`);
+      await axios.delete(`${API_URL}/enrollments/${id}`);
+      setEnrollments((prev) => prev.filter((e) => e.id !== id));
+      alert(`${enroll.name} approved, allocated, and moved to active enrollments.`);
     } catch (err) {
-      console.error("Error approving enrollment:", err);
       alert("Failed to approve enrollment.");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this enrollment?")) return;
-    setDeleting(id);
     try {
       await axios.delete(`${API_URL}/enrollments/${id}`);
       setEnrollments((prev) => prev.filter((e) => e.id !== id));
-    } catch (err) {
-      console.error("Error deleting:", err);
-    } finally {
-      setDeleting(null);
+    } catch {
+      alert("Failed to delete enrollment.");
     }
   };
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-screen text-gray-600 text-lg font-semibold">
-        Loading enrollments...
-      </div>
-    );
+  function getSortableDate(item) {
+    if (!item.filledDate) return 0;
+    const parsed = Date.parse(item.filledDate);
+    if (!isNaN(parsed)) return parsed;
+    const d = item.filledDate.split("/");
+    if (d.length === 3) return Date.parse(`${d[2]}-${d[1]}-${d[0]}`);
+    return 0;
+  }
+  const sortedEnrollments = [...enrollments].sort(
+    (a, b) => getSortableDate(b) - getSortableDate(a)
+  );
+
+  if (loading) return (
+    <div className="py-24 text-center text-xl text-blue-700 font-bold">
+      Loading...
+    </div>
+  );
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
-        Enrolled Students List
-      </h1>
-
-      <div className="overflow-x-auto bg-white shadow-lg rounded-xl">
-        <table className="min-w-full text-left border-collapse">
-          <thead className="bg-blue-700 text-white">
+    <div className="p-8 max-w-6xl mx-auto min-h-screen">
+      <h2 className="text-3xl font-bold mb-8 text-blue-700">Pending Enrollment Requests</h2>
+      <div className="overflow-auto shadow-lg rounded-xl bg-white border border-blue-100">
+        <table className="min-w-full text-sm text-blue-900">
+          <thead className="sticky top-0 bg-blue-50 z-10">
             <tr>
-              <th className="p-3 border-b">#</th>
-              <th className="p-3 border-b">Name</th>
-              <th className="p-3 border-b">Email</th>
-              <th className="p-3 border-b">Course</th>
-              <th className="p-3 border-b">Date</th>
-              <th className="p-3 border-b">Status</th>
-              <th className="p-3 border-b text-center">Actions</th>
+              <th className="py-3 px-4 text-left">Name</th>
+              <th className="py-3 px-4 text-left">Email</th>
+              <th className="py-3 px-4 text-left">Course</th>
+              <th className="py-3 px-4 text-left">Batch</th>
+              <th className="py-3 px-4 text-left">Date</th>
+              <th className="py-3 px-4 text-center">Approve</th>
+              <th className="py-3 px-4 text-center">Delete</th>
             </tr>
           </thead>
           <tbody>
-            {enrollments.length === 0 ? (
+            {sortedEnrollments.length === 0 ? (
               <tr>
-                <td colSpan="7" className="p-4 text-center text-gray-500">
-                  No enrollments found
+                <td colSpan={7} className="py-12 text-center text-gray-400">
+                  No pending enrollments.
                 </td>
               </tr>
-            ) : (
-              enrollments.map((enroll, index) => (
-                <tr key={enroll.id} className="hover:bg-gray-100 transition-all">
-                  <td className="p-3 border-b">{index + 1}</td>
-                  <td className="p-3 border-b">{enroll.name}</td>
-                  <td className="p-3 border-b">{enroll.email}</td>
-                  <td className="p-3 border-b">{enroll.courseName}</td>
-                  <td className="p-3 border-b">{enroll.filledDate}</td>
-                  <td className="p-3 border-b">
-                    {enroll.isApproved ? (
-                      <span className="text-green-600 font-semibold">✅ Approved</span>
-                    ) : (
-                      <span className="text-red-500 font-medium">Pending</span>
-                    )}
-                  </td>
-                  <td className="p-3 border-b text-center">
-                    {enroll.isApproved ? (
-                      <button
-                        onClick={() => handleDelete(enroll.id)}
-                        disabled={deleting === enroll.id}
-                        className={`px-3 py-1 rounded text-white flex items-center gap-1 justify-center ${
-                          deleting === enroll.id
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-red-600 hover:bg-red-700 transition"
-                        }`}
-                      >
-                        <FaTrashAlt /> {deleting === enroll.id ? "..." : "Delete"}
-                      </button>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
-                        <input
-                          type="text"
-                          placeholder="Username"
-                          value={credentials[enroll.id]?.username || ""}
-                          onChange={(e) =>
-                            setCredentials((prev) => ({
-                              ...prev,
-                              [enroll.id]: {
-                                ...prev[enroll.id],
-                                username: e.target.value,
-                              },
-                            }))
-                          }
-                          className="border rounded px-2 py-1 w-28 text-sm"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Password"
-                          value={credentials[enroll.id]?.password || ""}
-                          onChange={(e) =>
-                            setCredentials((prev) => ({
-                              ...prev,
-                              [enroll.id]: {
-                                ...prev[enroll.id],
-                                password: e.target.value,
-                              },
-                            }))
-                          }
-                          className="border rounded px-2 py-1 w-28 text-sm"
-                        />
-                        <button
-                          onClick={() => handleApprove(enroll.id)}
-                          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1"
-                        >
-                          <FaCheck /> Approve
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
+            ) : sortedEnrollments.map((enroll, idx) => (
+              <tr key={enroll.id}
+                  className={`hover:bg-blue-50 transition ${
+                    idx % 2 === 0 ? "bg-gray-50" : "bg-white"
+                  }`}>
+                <td className="py-2 px-4 font-semibold">{enroll.name || <span className="italic text-gray-400">No Name</span>}</td>
+                <td className="py-2 px-4">{enroll.email}</td>
+                <td className="py-2 px-4">{enroll.courseName}</td>
+                <td className="py-2 px-4">
+                  <select
+                    value={batchSelections[enroll.id] || ""}
+                    onFocus={() => fetchBatches(enroll.courseName, enroll.id)}
+                    onChange={e =>
+                      setBatchSelections((prev) => ({ ...prev, [enroll.id]: e.target.value }))
+                    }
+                    className="border rounded px-2 py-1 text-sm focus:ring focus:ring-blue-200 min-w-[100px]"
+                    required
+                  >
+                    <option value="">Choose</option>
+                    {(courseBatches[enroll.id] || []).map((batch) => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.name || `Batch ${batch.batchNumber}`}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-2 px-4">
+                  {enroll.filledDate
+                    ? new Date(getSortableDate(enroll)).toLocaleDateString()
+                    : <span className="italic text-gray-400">No Date</span>
+                  }
+                </td>
+                <td className="py-2 px-4 text-center">
+                  <div className="flex flex-col gap-1 items-center">
+                    <input
+                      type="text"
+                      placeholder="Username"
+                      value={credentials[enroll.id]?.username || ""}
+                      onChange={e =>
+                        setCredentials((prev) => ({
+                          ...prev,
+                          [enroll.id]: { ...prev[enroll.id], username: e.target.value },
+                        }))
+                      }
+                      className="border rounded px-2 py-1 w-28 mb-1"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Password"
+                      value={credentials[enroll.id]?.password || ""}
+                      onChange={e =>
+                        setCredentials((prev) => ({
+                          ...prev,
+                          [enroll.id]: { ...prev[enroll.id], password: e.target.value },
+                        }))
+                      }
+                      className="border rounded px-2 py-1 w-28 mb-2"
+                    />
+                    <button
+                      onClick={() => handleApprove(enroll.id)}
+                      className="flex items-center gap-2 px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded shadow transition"
+                    >
+                      <FaCheck /> Approve
+                    </button>
+                  </div>
+                </td>
+                <td className="py-2 px-4 text-center">
+                  <button
+                    onClick={() => handleDelete(enroll.id)}
+                    className="flex items-center gap-2 px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow transition"
+                  >
+                    <FaTrashAlt /> Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
