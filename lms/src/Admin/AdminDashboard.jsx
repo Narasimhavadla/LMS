@@ -165,7 +165,7 @@ const AdminDashboard = () => {
         <h1 className="text-2xl font-bold mb-6 text-center">Admin Dashboard</h1>
         <button
           onClick={() => setActiveTab("progress")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "progress" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -173,7 +173,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("enrollments")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "enrollments" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -181,7 +181,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("approvedEnrollment")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "approvedEnrollment" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -189,7 +189,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("skills")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "skills" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -197,7 +197,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("videoUpload")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "videoUpload" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -205,7 +205,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("assignments")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "assignments" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -213,7 +213,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("certificates")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "certificates" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -221,7 +221,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("addAdmin")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "addAdmin" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
@@ -229,7 +229,7 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab("adminUserActivity")}
-          className={`py-3 px-4 rounded text-left font-semibold ${
+          className={`py-2 px-4 rounded text-left font-semibold ${
             activeTab === "adminUserActivity" ? "bg-blue-600" : "hover:bg-gray-700"
           }`}
         >
