@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { FaSearch, FaArrowLeft, FaArrowRight, FaFileExcel } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaFileExcel } from "react-icons/fa";
 
 const AdminUserActivity = () => {
   const [activities, setActivities] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [showTodayOnly, setShowTodayOnly] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(""); // Calendar filter
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("userActivities")) || [];
-    // Most recent first
     const sorted = stored.sort(
       (a, b) => new Date(b.loginTime) - new Date(a.loginTime)
     );
@@ -26,10 +26,17 @@ const AdminUserActivity = () => {
       .includes(searchTerm.toLowerCase());
     const matchesRole =
       roleFilter === "all" || (a.role && a.role.toLowerCase() === roleFilter);
-    const matchesToday = !showTodayOnly
-      ? true
-      : new Date(a.loginTime).toDateString() === new Date().toDateString();
-    return matchesSearch && matchesRole && matchesToday;
+
+    let matchesDate = true;
+    if (selectedDate) {
+      const loginDate = new Date(a.loginTime).toISOString().slice(0, 10);
+      matchesDate = loginDate === selectedDate;
+    } else if (showTodayOnly) {
+      matchesDate =
+        new Date(a.loginTime).toDateString() === new Date().toDateString();
+    }
+
+    return matchesSearch && matchesRole && matchesDate;
   });
 
   // Pagination
@@ -60,96 +67,95 @@ const AdminUserActivity = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto min-h-screen">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div className="flex gap-2 items-center grow">
-          <div className="relative grow">
-            <input
-              type="text"
-              placeholder="Search user..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10 pr-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 w-full"
-            />
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
-          </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => {
-              setRoleFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="border border-blue-200 rounded px-3 py-2 focus:ring-blue-300"
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="user">User</option>
-          </select>
-          <button
-            onClick={() => setShowTodayOnly((t) => !t)}
-            className={`px-4 py-2 rounded transition text-sm font-semibold border ${
-              showTodayOnly
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-gray-50 text-blue-800 border-blue-200"
-            }`}
-          >
-            Today Only
-          </button>
-        </div>
+    <div className="p-4 max-w-5xl mx-auto">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <input
+          type="text"
+          placeholder="Search by User"
+          className="border rounded px-3 py-2 text-sm focus:outline-blue-400"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+        <select
+          value={roleFilter}
+          onChange={e => setRoleFilter(e.target.value)}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          <option value="all">All</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+        </select>
+        <label className="inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showTodayOnly}
+            disabled={!!selectedDate}
+            onChange={e => setShowTodayOnly(e.target.checked)}
+            className="mr-1"
+          />
+          <span className="text-sm">Show Today Only</span>
+        </label>
+        {/* Date Picker */}
+        <input
+          type="date"
+          className="border rounded px-3 py-2 text-sm"
+          value={selectedDate}
+          onChange={e => {
+            setSelectedDate(e.target.value);
+            setShowTodayOnly(false);
+          }}
+        />
         <button
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+          className={`px-3 py-2 text-sm rounded bg-gray-200 ${!selectedDate ? "opacity-40" : "hover:bg-gray-300"}`}
+          onClick={() => setSelectedDate("")}
+          disabled={!selectedDate}
+        >
+          Clear Date
+        </button>
+        <button
+          className="px-3 py-2 text-sm rounded bg-green-600 text-white flex items-center gap-2 hover:bg-green-700"
           onClick={exportToExcel}
         >
-          <FaFileExcel /> Export Excel
+          <FaFileExcel /> Export to Excel
         </button>
       </div>
-      <div className="overflow-auto bg-white rounded-xl border border-blue-100 shadow">
-        <table className="w-full text-sm min-w-[800px]">
-          <thead className="sticky top-0 bg-blue-100">
-            <tr>
-              <th className="px-4 py-3 text-left">User</th>
-              <th className="px-4 py-3 text-left">Role</th>
-              <th className="px-4 py-3 text-left">Login Date</th>
-              <th className="px-4 py-3 text-left">Login Time</th>
-              <th className="px-4 py-3 text-left">Logout Date</th>
-              <th className="px-4 py-3 text-left">Logout Time</th>
+      {/* Table */}
+      <div className="overflow-x-auto rounded-md shadow">
+        <table className="min-w-full bg-white text-sm">
+          <thead>
+            <tr className="bg-blue-50 text-blue-800">
+              <th className="py-3 px-4 text-left font-semibold">User</th>
+              <th className="py-3 px-4 text-left font-semibold">Role</th>
+              <th className="py-3 px-4 text-left font-semibold">Login Date</th>
+              <th className="py-3 px-4 text-left font-semibold">Login Time</th>
+              <th className="py-3 px-4 text-left font-semibold">Logout Date</th>
+              <th className="py-3 px-4 text-left font-semibold">Logout Time</th>
             </tr>
           </thead>
           <tbody>
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-gray-300">
+                <td colSpan={6} className="text-center py-6 text-gray-400">
                   No data found.
                 </td>
               </tr>
             ) : (
               paginatedData.map((a, idx) => (
-                <tr
-                  key={a.loginTime + a.userId}
-                  className={`hover:bg-blue-50 transition ${
-                    idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  }`}
-                >
-                  <td className="px-4 py-2 font-semibold">{a.userId}</td>
-                  <td className="px-4 py-2">{a.role || "N/A"}</td>
-                  <td className="px-4 py-2">
-                    {new Date(a.loginTime).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-2">
-                    {new Date(a.loginTime).toLocaleTimeString()}
-                  </td>
-                  <td className="px-4 py-2">
+                <tr key={idx} className="odd:bg-gray-50 hover:bg-blue-50 transition">
+                  <td className="px-4 py-3">{a.userId}</td>
+                  <td className="px-4 py-3">{a.role || "N/A"}</td>
+                  <td className="px-4 py-3">{new Date(a.loginTime).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">{new Date(a.loginTime).toLocaleTimeString()}</td>
+                  <td className="px-4 py-3">
                     {a.logoutTime
                       ? new Date(a.logoutTime).toLocaleDateString()
-                      : <span className="text-gray-400">-</span>}
+                      : "-"}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-3">
                     {a.logoutTime
                       ? new Date(a.logoutTime).toLocaleTimeString()
-                      : <span className="text-gray-400">-</span>}
+                      : "-"}
                   </td>
                 </tr>
               ))
@@ -158,31 +164,23 @@ const AdminUserActivity = () => {
         </table>
       </div>
       {/* Pagination */}
-      <div className="flex justify-center items-center gap-2 my-8">
+      <div className="flex items-center gap-3 mt-6">
         <button
+          className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200"
+          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
           disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
-          className={`p-2 rounded-md ${
-            currentPage === 1
-              ? "bg-gray-200 text-gray-400"
-              : "bg-blue-200 text-blue-800 hover:bg-blue-300"
-          }`}
         >
-          <FaArrowLeft />
+          <FaArrowLeft className="inline mr-1" /> Prev
         </button>
-        <span className="px-3 font-bold text-blue-700">
-          Page {currentPage} of {totalPages || 1}
+        <span>
+          Page <b>{currentPage}</b> of <b>{totalPages}</b>
         </span>
         <button
+          className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200"
+          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
           disabled={currentPage === totalPages || totalPages === 0}
-          onClick={() => setCurrentPage((p) => p + 1)}
-          className={`p-2 rounded-md ${
-            currentPage === totalPages || totalPages === 0
-              ? "bg-gray-200 text-gray-400"
-              : "bg-blue-200 text-blue-800 hover:bg-blue-300"
-          }`}
         >
-          <FaArrowRight />
+          Next <FaArrowRight className="inline ml-1" />
         </button>
       </div>
     </div>
