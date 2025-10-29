@@ -1,49 +1,75 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import jsPDF from "jspdf";
-
-// You can import your favorite icon libraries for better visuals!
-import { FaRegCheckCircle, FaSpinner, FaDownload, FaRegClock, FaRegFileAlt } from "react-icons/fa";
+import { FaCheckCircle, FaDownload, FaRegClock, FaRegCheckCircle, FaUserGraduate, FaTimesCircle } from "react-icons/fa";
+import { sendNotification } from "../Components/notificationsApi";
 
 export default function CertificateManagement({ userId, userName, email }) {
-  const API_URL = import.meta.env.VITE_API_URL;
+  const APIURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const [enrolledCourses, setEnrolledCourses] = useState([]);
-  const [courseMetas, setCourseMetas] = useState({});
   const [certificateRequests, setCertificateRequests] = useState([]);
-  const [loadingMap, setLoadingMap] = useState({});
+  const [coursesMeta, setCoursesMeta] = useState([]); // For course.description
+  const [loading, setLoading] = useState(false);
+  const [successAlert, setSuccessAlert] = useState("");
+  const [errorAlert, setErrorAlert] = useState("");
 
   useEffect(() => {
-    axios.get(`${API_URL}/enrolledcourses?email=${email}`)
-      .then(res => setEnrolledCourses(res.data || []));
-    axios.get(`${API_URL}/courses`).then(res => {
-      const dict = {};
-      (res.data || []).forEach(course => { dict[course.title] = course; });
-      setCourseMetas(dict);
-    });
-    axios.get(`${API_URL}/certificates?userId=${userId}`)
-      .then(res => setCertificateRequests(res.data || []));
-  }, [API_URL, userId, email]);
+    async function loadData() {
+      setLoading(true);
+      const [coursesRes, certsRes, allCoursesRes] = await Promise.all([
+        axios.get(`${APIURL}/enrolledcourses?email=${email}`),
+        axios.get(`${APIURL}/certificates?userId=${userId}`),
+        axios.get(`${APIURL}/courses`)
+      ]);
+      setEnrolledCourses(coursesRes.data || []);
+      setCertificateRequests(certsRes.data || []);
+      setCoursesMeta(allCoursesRes.data || []);
+      setLoading(false);
+    }
+    loadData();
+  }, [APIURL, userId, email]);
 
-  const getCertificate = courseName =>
-    certificateRequests.find(req => req.courseName === courseName && req.userId === userId);
+  const getCertificate = (courseName) => certificateRequests.find((req) => req.courseName === courseName && req.userId === userId);
+  const getCourseMeta = (title) => coursesMeta.find(c => c.title === title);
 
   const requestCertificate = async (courseName) => {
-    setLoadingMap(lm => ({ ...lm, [courseName]: true }));
-    await axios.post(`${API_URL}/certificates`, {
-      userId,
-      userName,
-      courseName,
-      status: "requested",
-      issuedDate: "",
-      downloadUrl: "",
-    });
-    const resp = await axios.get(`${API_URL}/certificates?userId=${userId}`);
-    setCertificateRequests(resp.data || []);
-    setLoadingMap(lm => ({ ...lm, [courseName]: false }));
+    setLoading(true);
+    setSuccessAlert("");
+    setErrorAlert("");
+    try {
+      const res = await axios.post(`${APIURL}/certificates`, { userId, userName, email, courseName, status: "requested" });
+      await sendNotification({
+        type: "certificate_requested",
+        from: userName,
+        to: ["admin"],
+        message: `${userName} has requested a certificate for "${courseName}"`,
+        courseName,
+        relatedId: res.data.id,
+        createdAt: new Date().toISOString(),
+        status: "unread",
+        forRole: "admin"
+      });
+      setSuccessAlert(`Request for "${courseName}" sent! You'll receive a notification when approved.`);
+      const certsRes = await axios.get(`${APIURL}/certificates?userId=${userId}`);
+      setCertificateRequests(certsRes.data || []);
+    } catch {
+      setErrorAlert("Request failed. Please try again later.");
+    }
+    setLoading(false);
+    setTimeout(() => {
+      setSuccessAlert("");
+      setErrorAlert("");
+    }, 3000);
   };
 
-  const downloadCertificatePDF = (certificate, courseName) => {
-    const course = courseMetas[courseName];
+  // PDF Design: always use a safe courseName
+  const downloadCertificate = (cert, courseTitle) => {
+    const courseName = courseTitle || cert.courseName || cert.title || "";
+    if (!courseName) {
+      alert("Course name is missing for this certificate!");
+      return;
+    }
+    const course = getCourseMeta(courseName);
     const doc = new jsPDF("landscape", "pt", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     doc.setFontSize(32);
@@ -58,100 +84,129 @@ export default function CertificateManagement({ userId, userName, email }) {
     doc.text(courseName, pageWidth / 2, 300, { align: "center" });
     doc.setFontSize(16);
     doc.text(
-      `Issued: ${(certificate.issuedDate || new Date().toLocaleDateString()).slice(0, 10)}`,
+      `Issued: ${(cert.issuedDate || new Date().toLocaleDateString()).slice(0, 10)}`,
       pageWidth / 2,
       370,
       { align: "center" }
     );
     doc.setFontSize(16);
-    doc.text(course?.description || "", pageWidth / 2, 400, { align: "center" });
+    doc.text((course?.description || ""), pageWidth / 2, 400, { align: "center" });
     doc.setFontSize(18);
     doc.text("Congratulations!", pageWidth / 2, 440, { align: "center" });
     doc.save(`${userName}-${courseName}-certificate.pdf`);
+    setSuccessAlert(`Certificate downloaded for "${courseName}"`);
+    setTimeout(() => setSuccessAlert(""), 2000);
   };
 
-  // Util for tags
-  const CertificateStatusTag = ({ status }) => {
-    if (status === "requested") return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-        <FaRegClock className="mr-1" /> Awaiting Approval
-      </span>
-    );
-    if (status === "completed" || status === "issued") return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-        <FaRegCheckCircle className="mr-1" /> Issued
-      </span>
-    );
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800">
-        <FaRegFileAlt className="mr-1" /> Not requested
-      </span>
-    );
-  };
-
-  // Main render:
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6 text-blue-800 flex items-center gap-2">
-        <FaRegFileAlt className="text-blue-400" /> My Certificates
+    <div style={{ maxWidth: 700, margin: "30px auto", padding: "20px 10px" }}>
+      <h2 style={{ fontSize: 28, fontWeight: 700, color: "#2563eb", marginBottom: 15 }}>
+        <FaUserGraduate style={{ marginRight: 7 }} />
+        Your Certificates
       </h2>
-      {enrolledCourses.length === 0 ? (
-        <div className="bg-gray-50 text-gray-400 text-center py-16 rounded-xl shadow-inner">
-          No enrolled courses found.
+      {successAlert &&
+        <div style={{ background: "#d1fae5", color: "#065f46", padding: 10, borderRadius: 6, margin: "12px 0" }}>
+          <FaCheckCircle style={{ marginRight: 5 }} />
+          {successAlert}
+        </div>
+      }
+      {errorAlert &&
+        <div style={{ background: "#fee2e2", color: "#991b1b", padding: 10, borderRadius: 6, margin: "12px 0" }}>
+          <FaTimesCircle style={{ marginRight: 5 }} />
+          {errorAlert}
+        </div>
+      }
+      {loading ? (
+        <div style={{ textAlign: "center", color: "#555" }}>
+          <FaRegClock style={{ marginRight: 5 }} />
+          Loading courses...
         </div>
       ) : (
-        <div className="grid gap-6">
-          {enrolledCourses.map((enrollment) => {
-            const cert = getCertificate(enrollment.courseName);
-            const status = cert?.status || "none";
-            return (
-              <div key={enrollment.courseName} className="flex flex-col md:flex-row md:items-center justify-between bg-white rounded-xl shadow p-5 transition hover:shadow-lg border border-slate-100">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 rounded bg-gradient-to-tr from-blue-100 to-blue-200 p-3">
-                      <FaRegFileAlt className="text-blue-600 text-2xl" />
+        <div style={{ marginTop: 24 }}>
+          {enrolledCourses.length === 0 ? (
+            <div style={{ fontSize: 17, color: "#64748b" }}>
+              You haven't enrolled for any courses yet.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "22px", marginTop: 12 }}>
+              {enrolledCourses.map((course) => {
+                const cert = getCertificate(course.courseName);
+                return (
+                  <div
+                    key={course.courseName}
+                    style={{
+                      width: 320,
+                      minHeight: 120,
+                      background: "#f1f5f9",
+                      borderRadius: 16,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                      padding: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      justifyContent: "center"
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 18, color: "#2563eb" }}>
+                      {course.courseName}
                     </div>
                     <div>
-                      <div className="font-semibold text-lg text-gray-800">{enrollment.courseName}</div>
-                      <div className="text-gray-500 text-sm">{courseMetas[enrollment.courseName]?.description}</div>
+                      {!cert && (
+                        <button
+                          style={{
+                            background: "#2563eb",
+                            color: "white",
+                            borderRadius: 8,
+                            padding: "6px 20px",
+                            fontWeight: 500,
+                            fontSize: 16,
+                            border: "none"
+                          }}
+                          disabled={loading}
+                          onClick={() => requestCertificate(course.courseName)}
+                        >
+                          Request Certificate
+                        </button>
+                      )}
+                      {cert && cert.status === "requested" && (
+                        <span
+                          style={{
+                            background: "#bfdbfe",
+                            color: "#2563eb",
+                            padding: "5px 15px",
+                            borderRadius: 7,
+                            fontWeight: 500,
+                            marginRight: 10,
+                            display: "inline-block"
+                          }}
+                        >
+                          <FaRegCheckCircle style={{ marginRight: 5 }} />
+                          Requested - Awaiting Approval
+                        </span>
+                      )}
+                      {cert && cert.status === "completed" && (
+                        <button
+                          style={{
+                            background: "#10b981",
+                            color: "white",
+                            borderRadius: 8,
+                            padding: "6px 18px",
+                            fontWeight: 500,
+                            fontSize: 16,
+                            border: "none"
+                          }}
+                          onClick={() => downloadCertificate(cert, course.courseName)}
+                        >
+                          <FaDownload style={{ marginRight: 7 }} />
+                          Download Certificate
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
-                <div className="mt-3 md:mt-0 flex flex-col md:items-end gap-2">
-                  <CertificateStatusTag status={status} />
-                  <div>
-                    {loadingMap[enrollment.courseName] ? (
-                      <button className="flex items-center gap-2 bg-blue-300 text-white px-4 py-1 rounded cursor-not-allowed animate-pulse" disabled>
-                        <FaSpinner className="animate-spin" />Processing...
-                      </button>
-                    ) : cert && (status === "completed" || status === "issued") ? (
-                      <button
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded shadow transition"
-                        onClick={() => downloadCertificatePDF(cert, enrollment.courseName)}
-                      >
-                        <FaDownload /> Download PDF
-                      </button>
-                    ) : cert && status === "requested" ? (
-                      <button
-                        className="flex items-center gap-2 bg-yellow-400 text-white px-4 py-1 rounded shadow"
-                        disabled
-                      >
-                        <FaRegClock /> Requested
-                      </button>
-                    ) : (
-                      <button
-                        className="flex items-center gap-2 bg-blue-700 hover:bg-blue-900 text-white px-4 py-1 rounded shadow transition"
-                        onClick={() => requestCertificate(enrollment.courseName)}
-                        disabled={loadingMap[enrollment.courseName]}
-                      >
-                        <FaRegFileAlt /> Request
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

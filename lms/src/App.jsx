@@ -31,6 +31,7 @@ import AddAdmin from './Admin/AddAdmin'
 import AdminUserActivity from './Admin/AdminUserActivity'
 import VideoUploadManager from './Admin/VideoUploadManager'
 import ApprovedEnrollments from './Admin/ApprovedEnrollments'
+import AdminNotificationPanel from './Admin/AdminNotificationPanel'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -64,6 +65,7 @@ function App() {
           <Route path='/admin-user-activity' element={<AdminUserActivity/>}></Route>
           <Route path='/admin-video-upload' element={<VideoUploadManager/>}></Route>
           <Route path='/aproved-enrollments' element={<ApprovedEnrollments/>}></Route>
+          <Route path='/admin-notification' element={<AdminNotificationPanel/>}></Route>
 
 
           <Route 
