@@ -17,7 +17,7 @@ const LandingPage = () => {
               Empower your learning journey with interactive courses, real-time progress tracking, and expert guidance — all in one place.
             </p>
             <div className="space-x-4">
-              <Link to={'/contactadvisor'} className="bg-yellow-400 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
+              <Link to={'/course'} className="bg-yellow-400 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
                 Get Started
               </Link>
               <Link to={'/course'} className="border border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-700 transition">

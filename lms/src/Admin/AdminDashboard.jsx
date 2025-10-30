@@ -88,11 +88,11 @@ const { username: adminUsername } = useContext(AuthContext);
     setAdminNotifCount((notifData || []).filter(n => n.status === "unread").length);
   }
   loadNotifications();
-}, [adminUsername]);
+}, [adminUsername,notifications]);
 
-useEffect(() => {
-  setAdminNotifCount(notifications.filter(n => n.status === "unread").length);
-}, [notifications]);
+// useEffect(() => {
+//   setAdminNotifCount(notifications.filter(n => n.status === "unread").length);
+// }, [notifications]);
 
 
   const handleGotIt = async (id) => {
@@ -140,7 +140,7 @@ useEffect(() => {
             {/* Doughnut Chart */}
             <div className="bg-gray-100 p-4 rounded shadow w-[40%] h-full min-w-[300px] text-center">
               <h2 className="text-xl font-bold mb-4">Course Progress Overview</h2>
-              <div className="h-[190px] ">
+              <div className="h-full ">
                 <Doughnut data={studentData} />
               </div>
               <div className="mt-4 flex justify-center space-x-4">
@@ -219,7 +219,7 @@ useEffect(() => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 py-2 px-4 rounded text-left font-semibold transition ${
+            className={`text-s flex items-center gap-2 py-2 px-2 rounded text-left font-semibold transition ${
               activeTab === tab.key
                 ? "bg-blue-600 font-bold"
                 : "hover:bg-gray-700"
